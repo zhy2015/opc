@@ -10,6 +10,38 @@ ROOT = Path(__file__).resolve().parent.parent
 TASKS_DIR = ROOT / "tasks"
 TEMPLATES_DIR = ROOT / "templates"
 
+VALID_TASK_TRANSITIONS = {
+    "new": {"triaged", "cancelled"},
+    "triaged": {"planned", "cancelled"},
+    "planned": {"plan_review", "cancelled"},
+    "plan_review": {"plan_rejected", "dispatched", "cancelled"},
+    "plan_rejected": {"planned", "cancelled"},
+    "dispatched": {"running", "cancelled"},
+    "running": {"blocked", "awaiting_review", "paused", "failed", "cancelled"},
+    "blocked": {"paused", "cancelled"},
+    "awaiting_review": {"rework", "delivered", "cancelled"},
+    "rework": {"running", "cancelled"},
+    "paused": {"resumable", "cancelled"},
+    "resumable": {"running", "cancelled"},
+    "failed": {"paused", "cancelled"},
+    "delivered": {"archived"},
+    "archived": set(),
+    "cancelled": set(),
+}
+
+VALID_NODE_TRANSITIONS = {
+    "queued": {"assigned", "cancelled"},
+    "assigned": {"running", "cancelled"},
+    "running": {"blocked", "review_pending", "done", "failed", "cancelled"},
+    "blocked": {"assigned", "cancelled"},
+    "review_pending": {"rework", "done", "cancelled"},
+    "rework": {"running", "cancelled"},
+    "failed": {"assigned", "cancelled"},
+    "done": set(),
+    "skipped": set(),
+    "cancelled": set(),
+}
+
 
 def now_iso():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -43,6 +75,14 @@ def ensure_task_dirs(task_id: str):
     (task_dir / "reviews").mkdir(parents=True, exist_ok=True)
     (task_dir / "artifacts").mkdir(parents=True, exist_ok=True)
     return task_dir
+
+
+def assert_transition(old_status: str, new_status: str, allowed_map: dict, kind: str):
+    if old_status == new_status:
+        return
+    allowed = allowed_map.get(old_status, set())
+    if new_status not in allowed:
+        raise SystemExit("Illegal {} transition: {} -> {}".format(kind, old_status, new_status))
 
 
 def append_event(task_id: str, node_id: Optional[str], event_type: str, actor_role: str, payload: dict):
@@ -90,6 +130,7 @@ def create_task(args):
 def update_task_status(args):
     task, path = load_task(args.task_id)
     old = task["status"]
+    assert_transition(old, args.status, VALID_TASK_TRANSITIONS, "task")
     task["status"] = args.status
     task["updated_at"] = now_iso()
     save_json(path, task)
@@ -114,11 +155,12 @@ def create_node(args):
         "created_at": ts,
         "updated_at": ts,
     })
-    if args.acceptance:
-        node["acceptance_criteria"] = args.acceptance
     save_json(TASKS_DIR / args.task_id / "nodes" / (node_id + ".json"), node)
     append_event(args.task_id, node_id, "node_dispatched", args.actor, {"role": args.role, "kind": args.kind})
-    if task["status"] in {"new", "triaged", "planned", "plan_review", "plan_rejected"}:
+    if args.acceptance:
+        node["acceptance_criteria"] = args.acceptance
+        save_json(TASKS_DIR / args.task_id / "nodes" / (node_id + ".json"), node)
+    if task["status"] == "plan_review":
         task["status"] = "dispatched"
         task["updated_at"] = now_iso()
         save_json(task_path, task)
@@ -131,6 +173,7 @@ def update_node_status(args):
         raise SystemExit("Node not found: {}".format(args.node_id))
     node = load_json(path)
     old = node["status"]
+    assert_transition(old, args.status, VALID_NODE_TRANSITIONS, "node")
     node["status"] = args.status
     node["updated_at"] = now_iso()
     if args.output_ref:

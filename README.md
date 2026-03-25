@@ -48,6 +48,7 @@ OPC 是一套面向 OpenClaw 的多 Agent 管理架构草案。
 - `scripts/opc.py`：最小控制面 CLI
 - `tasks/`：运行时任务台账目录
 - `docs/mvp-usage.md`：最小使用说明
+- `docs/state-validation.md`：task / node 状态合法迁移规则
 
 最小演示：
 
