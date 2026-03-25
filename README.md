@@ -1,79 +1,301 @@
-# OPC — One Person Company
+# OPC — OpenClaw Process Company
 
-OPC 是一套面向 OpenClaw 的多 Agent 管理架构草案。
+OPC（OpenClaw Process Company）是面向 OpenClaw 的多 agent 派发与治理体系。
 
-核心思想：**一个主会话，就是一家公司。**
+它的目标不是把 agent 变成会互相闲聊的“组织戏法”，而是把复杂任务收口成一套 **可路由、可派发、可审核、可恢复、可交付** 的任务流。
 
-- 主会话 = CEO / 公司总控
-- 子 Agent = 各执行部门与专业岗位
-- 任务流 = 公司内部从立项、规划、审核、派发到交付的经营流程
-- 记忆、状态、审计 = 公司的经营台账
+一句话：
 
-这个仓库聚焦三件事：
+> **skill 是入口层，OPC 是经营层。**
 
-1. 定义 OpenClaw-native 的多 Agent 管理模型
-2. 将“主会话管理子 Agent”的模式制度化
-3. 为后续 MVP / 实现 / 可视化看板提供统一设计基线
+- skill 负责识别任务类型、提供方法边界
+- OPC 负责拆解、派发、审核、恢复、交付
 
-## 核心原则
+---
 
-- **主会话即 CEO**：负责目标设定、资源分配、上下文裁剪、风险兜底
-- **子 Agent 即部门**：按专业能力接单，不直接越权
-- **制度优先于数量**：不是堆更多 Agent，而是建立状态机、审核门、恢复点、权限边界
-- **OpenClaw 原生落地**：优先复用 sessions / subagents / memory / docs，而不是先造重框架
-- **可管理 > 可演示**：可暂停、可恢复、可审计、可解释，比“自动跑起来”更重要
+## 1. OPC 解决什么问题
 
-## 推荐阅读顺序
+当任务变复杂时，主会话很容易同时承担：
 
-1. `docs/vision.md` — 愿景与核心思想
-2. `docs/opc-architecture.md` — 总体架构总览
-3. `docs/org-model.md` — 组织模型：CEO、部门、岗位
-4. `docs/control-plane.md` — 管理面：状态、资源、上下文、权限
-5. `docs/runtime-architecture.md` — OpenClaw 运行时映射
-6. `docs/task-lifecycle.md` — 任务状态机与流转规则
-7. `docs/capability-mapping.md` — 对 edict 与其他 skill 的能力吸纳矩阵
-8. `docs/design-deltas.md` — OPC 相对其他方案的设计差异
-9. `docs/schemas.md` — Task / Node / Review / Event 核心 schema
-10. `docs/protocols.md` — CEO 与各角色的交互协议
-11. `docs/runtime-skeleton.md` — 最小可跑运行骨架
-12. `docs/mvp-plan.md` — 最小可跑落地路径
+- 需求理解
+- 任务拆解
+- 多角色执行
+- 风险审核
+- 结果汇总
+- 中断恢复
 
-## 一句话定义
+如果这些都靠临场记忆和临时 prompt，结果通常是：
 
-> OPC = 把主会话当 CEO，把子 Agent 当部门，把任务流当经营流程，把状态与记忆当公司的操作系统。
+- 任务边界漂移
+- 子代理职责不清
+- 审核点缺失
+- 失败后只能从头再来
+- 用户不知道当前卡在哪
 
-## MVP 骨架已包含
+OPC 要解决的就是这件事：
 
+- 让复杂任务进入可管理状态机
+- 让子代理拿到稳定 dispatch payload
+- 让 review gate 变成制度，而不是临时想起
+- 让 resume / recovery 成为默认能力
+- 让 OpenClaw 的 skill、subagent、ACP 落到统一控制模型里
+
+---
+
+## 2. 核心定位
+
+### OPC 不是
+
+- 不是新的重型运行时
+- 不是替代 OpenClaw session / subagent / ACP
+- 不是把所有任务都强行多 agent 化
+- 不是先做 dashboard 再找场景
+
+### OPC 是
+
+- 一套 OpenClaw-native 的任务派发协议
+- 一套多 agent 治理模型
+- 一层位于 skill 之上的控制面
+- 一套让复杂任务可暂停、可恢复、可审计的最小制度
+
+---
+
+## 3. 与 OpenClaw 的关系
+
+### OpenClaw 提供的原语
+
+- 主会话
+- `sessions_spawn`
+- `sessions_send`
+- subagent
+- ACP persistent session
+- workspace 文件系统
+- memory
+
+### OPC 提供的制度
+
+- task / node / review / event 台账
+- task / node 状态机
+- Router / Planner / Reviewer / Worker 角色边界
+- dispatch payload 结构
+- review gate 触发规则
+- resume / recovery 约束
+
+所以：
+
+> **OpenClaw 提供运行时，OPC 提供经营与派发协议。**
+
+---
+
+## 4. 最小闭环
+
+```text
+User
+  ↓
+CEO Session
+  ↓
+Router
+  ↓
+Planner
+  ↓
+Plan Gate
+  ↓
+Dispatcher
+  ↓
+Workers
+  ↓
+Result Gate
+  ↓
+Synthesizer / CEO
+  ↓
+Delivery
+```
+
+角色含义：
+
+- **CEO Session**：主会话，接需求、拍板、交付
+- **Router**：判断任务类型、匹配 skill、决定是否拆解
+- **Planner**：拆节点、写依赖、定验收标准
+- **Plan Gate**：审核计划是否合理
+- **Dispatcher**：选择主会话 / subagent / ACP 执行策略
+- **Workers**：完成具体节点
+- **Result Gate**：审核结果、决定返工或放行
+- **Synthesizer**：汇总结果给 CEO 最终交付
+
+---
+
+## 5. 任务分层
+
+### Type A：单步任务
+- 低风险
+- 不需要拆解
+- 主会话直接做
+
+### Type B：技能驱动任务
+- 已有明确 skill
+- 流程相对稳定
+- 可由主会话或单个执行者完成
+
+### Type C：多节点任务
+- 需要拆解
+- 需要 review / rework / resume
+- 进入 OPC task 流
+
+### Type D：持续会话任务
+- 需要 thread-bound / session-bound 持续推进
+- 优先 ACP persistent session
+- OPC 只负责上层经营状态，不吞掉长会话语义
+
+---
+
+## 6. skill 是入口层，OPC 是经营层
+
+推荐统一口径：
+
+### skill 层回答的是
+- 这是什么任务？
+- 应该用什么方法做？
+- 有哪些边界、禁区、默认流程？
+
+### OPC 层回答的是
+- 要不要拆解？
+- 谁来做？
+- 用主会话、subagent 还是 ACP？
+- 哪些节点必须过 review gate？
+- 中断后从哪继续？
+- 最终如何交付？
+
+因此：
+
+- `web-access` 决定联网任务怎么做
+- `coding-agent` 决定编码任务怎么委派
+- `social-media-manager` 决定社媒任务怎么路由
+- `hidream-aigc-skills` 决定 AIGC 生成任务怎么发起
+- **OPC 决定它们如何被串成一个完整任务流**
+
+---
+
+## 7. 当前仓库结构
+
+```text
+projects/opc/
+  README.md
+  docs/
+  templates/
+  scripts/
+  tasks/
+```
+
+关键内容：
+
+- `docs/opc-v1-spec.md`：**当前主规范基线**
+- `docs/skill-mapping.md`：OPC 与现有 skill 的接轨方式
+- `scripts/opc.py`：v1 轻控制面 CLI
 - `templates/`：task / node / review / event 模板
-- `scripts/opc.py`：最小控制面 CLI
-- `tasks/`：运行时任务台账目录
-- `docs/mvp-usage.md`：最小使用说明
-- `docs/state-validation.md`：task / node 状态合法迁移规则
-- `docs/openclaw-orchestration.md`：接入真实 OpenClaw session 的桥接设计
-- `docs/context-packaging.md`：CEO 向子 agent 配给上下文的打包规范
-- `docs/operating-rules.md`：独立会话 / 禁止套娃 / 并发上限 / 自动通告
-- `docs/session-governance.md`：会话治理与 CEO 独占调度权
-- `docs/first-real-workflow.md`：第一条真实 orchestration 工作流
+- `tasks/`：运行时任务台账
 
-最小演示：
+---
+
+## 8. 推荐阅读顺序
+
+### 主路径（新读者）
+1. `docs/opc-v1-spec.md`
+2. `docs/skill-mapping.md`
+3. `docs/openclaw-orchestration.md`
+4. `docs/mvp-usage.md`
+5. `scripts/opc.py`
+
+### 参考路径（旧稿 / 背景说明）
+- `docs/opc-architecture.md`
+- `docs/runtime-architecture.md`
+- `docs/protocols.md`
+- 其它早期设计文档
+
+文档关系建议统一为：
+
+- **主规范**：`opc-v1-spec.md`
+- **执行映射**：`skill-mapping.md`、`openclaw-orchestration.md`
+- **控制面说明**：`opc.py` + `mvp-usage.md`
+- **背景参考**：旧 architecture / protocols / vision 系列文档
+
+---
+
+## 9. 当前 v1 控制面能力
+
+`scripts/opc.py` 当前已经覆盖：
+
+- create task
+- update task status
+- create node
+- update node status
+- create review
+- render dispatch payload
+- bind session
+- show task summary
+- task / node 状态迁移校验
+- event 写入
+
+这意味着它已经不只是“样例脚本”，而是一个可操作的轻控制面样机。
+
+仍待补强的方向：
+
+- task 摘要视图更适合真实运营
+- review 结果与 task / node 联动更自动化
+- result recording 更结构化
+- resume cursor / recoverability 表达更显式
+- 对 OpenClaw session 操作增加桥接层说明或命令
+
+---
+
+## 10. 最小示例
 
 ```bash
 python3 scripts/opc.py create-task \
-  --title "Design OPC runtime MVP" \
-  --goal "Build a minimal runnable control loop for OPC"
+  --title "Run a real coding workflow" \
+  --goal "Route planning, execution, review, and delivery through OPC"
+
+python3 scripts/opc.py create-node TASK-XXXX \
+  --title "Implement feature" \
+  --role worker-code \
+  --kind execute
+
+python3 scripts/opc.py render-dispatch-payload TASK-XXXX NODE-XXXX
+python3 scripts/opc.py bind-session TASK-XXXX NODE-XXXX sess_xxx --runtime subagent --session-mode session
+python3 scripts/opc.py show-task TASK-XXXX
 ```
 
-## 已完成的真实演练
+---
 
-- `docs/multi-agent-demo-comic-run.md`：一次真实的 CEO → planner → reviewer → writer 多 agent 演练记录
-- `artifacts/comics/opc-architecture-comic-script.md`：用该链路产出的 OPC 架构知识漫画脚本
-- `artifacts/comics/opc-architecture-storyboard-table.md`：可直接交画师的分镜表
-- `artifacts/comics/opc-architecture-character-bible.md`：角色与场景锚点包
-- `artifacts/comics/opc-architecture-prompts.md`：漫画出图 prompt 草案
-- `artifacts/comics/opc-architecture-page-prompts.md`：分页 prompt 包
-- `artifacts/comics/DELIVERY.md`：完整漫画交付包说明
-- `artifacts/comics/opc-architecture-image-production-pack.md`：真出图执行包
-- `artifacts/comics/render-checklist.md`：首轮出图检查清单
-- `docs/final-comic-delivery-status.md`：当前已完成到“制作素材层”的状态说明
-- `docs/final-comic-package-summary.md`：完整结果包摘要
-- `docs/next-step-comic-production.md`：从脚本推进到真出图的建议路径
+## 11. v1 近期推进重点
+
+### P0
+- 明确 `opc-v1-spec.md` 为主规范
+- 收口 README 级总览
+- 补 `skill-mapping.md`
+- 盘点并收口 `scripts/opc.py`
+
+### P1
+- 跑通 coding workflow
+- 跑通 social workflow
+- 跑通 research workflow
+- 明确 review gate 规则
+- 明确 resume / recovery 规则
+
+### P2
+- 整理旧文档层级
+- 评估 dashboard 是否真有必要
+- 评估是否抽成独立 skill / 独立仓库
+
+---
+
+## 12. 当前结论
+
+OPC 当前最优路线不是推倒重建。
+
+应该做的是：
+
+1. 以 `opc-v1-spec.md` 作为主规范收口
+2. 统一口径为“skill 是入口层，OPC 是经营层”
+3. 用 `opc.py` 先把轻控制面跑稳
+4. 再接真实 coding / social / research 工作流
+5. 最后再决定是否产品化、可视化、独立化

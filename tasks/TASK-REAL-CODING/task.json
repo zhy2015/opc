@@ -1,0 +1,45 @@
+{
+  "task_id": "TASK-REAL-CODING",
+  "title": "Run a real coding workflow",
+  "goal": "Use OPC to route planning, implementation, review, and delivery through a resumable coding task flow",
+  "status": "delivered",
+  "priority": "medium",
+  "owner": "ceo-session",
+  "acceptance_criteria": [
+    "Has planner/code/review/delivery nodes",
+    "Has dispatch payloads",
+    "Has review-gated delivery"
+  ],
+  "constraints": [],
+  "context_refs": [],
+  "tags": [],
+  "budget": {
+    "max_parallel": 2,
+    "preferred_models": [
+      "default"
+    ],
+    "token_budget": 100000,
+    "cost_budget_usd": 5
+  },
+  "resume_cursor": {
+    "completed_nodes": [
+      "NODE-CODE-001",
+      "NODE-DELIVER-001",
+      "NODE-PLAN-001",
+      "NODE-REVIEW-001"
+    ],
+    "next_nodes": [],
+    "stable_artifacts": [
+      "docs/real-coding-workflow.md",
+      "reviews/TASK-REAL-CODING-approval.md",
+      "scripts/opc.py",
+      "tasks/TASK-REAL-CODING/artifacts/delivery-summary.md"
+    ]
+  },
+  "delivery": {
+    "channel": "main-session",
+    "format": "markdown"
+  },
+  "created_at": "2026-03-25T08:43:03Z",
+  "updated_at": "2026-03-25T08:43:42Z"
+}

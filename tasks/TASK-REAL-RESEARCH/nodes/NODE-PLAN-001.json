@@ -1,0 +1,30 @@
+{
+  "node_id": "NODE-PLAN-001",
+  "task_id": "TASK-REAL-RESEARCH",
+  "kind": "plan",
+  "title": "Plan research workflow",
+  "assigned_role": "planner",
+  "assigned_session": null,
+  "status": "done",
+  "depends_on": [],
+  "input_refs": [],
+  "output_refs": [
+    "docs/first-real-workflow.md"
+  ],
+  "instructions": "",
+  "acceptance_criteria": [
+    "Defines nodes and dependencies"
+  ],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "2026-03-25T08:35:59Z",
+  "updated_at": "2026-03-25T08:35:59Z",
+  "spawned_by": null,
+  "runtime": null,
+  "session_mode": null,
+  "dispatch_payload_ref": null,
+  "result_summary": "Planner defined 4-node research workflow with explicit dependencies."
+}

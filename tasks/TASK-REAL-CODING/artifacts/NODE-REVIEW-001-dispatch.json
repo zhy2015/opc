@@ -1,0 +1,35 @@
+{
+  "task_id": "TASK-REAL-CODING",
+  "node_id": "NODE-REVIEW-001",
+  "role": "reviewer",
+  "mission_context": {
+    "task_title": "Run a real coding workflow",
+    "goal": "Use OPC to route planning, implementation, review, and delivery through a resumable coding task flow",
+    "priority": "medium",
+    "node_title": "Review implementation result",
+    "acceptance_criteria": [
+      "Approve or request rework"
+    ]
+  },
+  "working_context": {
+    "task_context_refs": [],
+    "input_refs": [],
+    "depends_on": [
+      "NODE-CODE-001"
+    ],
+    "instructions": ""
+  },
+  "policy_context": {
+    "role_boundary": "Only complete the assigned node.",
+    "must_not": [
+      "Do not change task scope.",
+      "Do not bypass review gates.",
+      "Do not mark unrelated nodes complete."
+    ]
+  },
+  "output_contract": {
+    "review_required": true,
+    "expected_output_refs": [],
+    "artifact_dir": "tasks/TASK-REAL-CODING/artifacts"
+  }
+}

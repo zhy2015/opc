@@ -1,0 +1,17 @@
+{
+  "review_id": "REV-B849C66C",
+  "task_id": "TASK-REAL-RESEARCH",
+  "target_node_id": "NODE-RESEARCH-001",
+  "reviewer_role": "reviewer",
+  "reviewer_session": null,
+  "stage": "result_gate",
+  "decision": "approve",
+  "reasons": [
+    "research-brief establishes review and resume rules clearly"
+  ],
+  "required_changes": [],
+  "severity": "low",
+  "score": 1.0,
+  "notes": "Approved for synthesis node input.",
+  "created_at": "2026-03-25T08:38:14Z"
+}

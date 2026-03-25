@@ -2,133 +2,206 @@
 
 ## 目标
 
-定义 OPC 第一条真实可执行的 OpenClaw 工作流：
+用一条真实的 research workflow 证明 OPC 已经不只是文档概念，而是可落地的 v1 任务流：
 
-> CEO 创建任务 → spawn planner → 接收规划结果 → spawn reviewer → 接收审核结果 → 决定是否派发 worker
+> CEO 建 task → planner 定义节点 → research 产出研究材料 → writer 产出综合简报 → reviewer 审核放行 → task 交付
 
-这是 OPC 从“桥接”走向“真实 orchestration”的第一步。
+这条样例重点验证三件事：
 
----
-
-## 前提规则
-
-本工作流遵守以下硬约束：
-
-1. 子 Agent 在独立会话中运行
-2. 子 Agent 不得再生成子 Agent
-3. 默认全局并发上限为 8
-4. 子 Agent 完成后自动向主会话通告结果
+1. task / node / review / event 台账可真实落地
+2. dispatch payload 可稳定输出给后续执行者
+3. resume / review / delivery 可以串成完整闭环
 
 ---
 
-## Phase 1：CEO 建 task
+## 工作流类型
 
-CEO 在文件台账中完成：
-- create-task
-- create-node（plan 节点）
-- render-dispatch-payload
-
-产物：
-- `task.json`
-- `nodes/NODE-PLAN.json`
-- `artifacts/NODE-PLAN-dispatch.json`
-
----
-
-## Phase 2：CEO spawn planner
-
-CEO 使用 `sessions_spawn` 创建独立 planner 会话。
-
-要求：
-- 独立 session
-- 明确告知：不可再 spawn 子 Agent
-- 明确只处理当前 plan node
-- 返回结构化规划结果
-
-同时：
-- 用 `bind-session` 将 `session_key` 绑定回 node
-- 记录事件流
+- 类型：**Research workflow**
+- Task ID：`TASK-REAL-RESEARCH`
+- 目标：
+  - planner 定义节点与依赖
+  - research 收集一手规则依据
+  - writer 产出结构化简报
+  - reviewer 做结果门
+  - CEO 完成交付
 
 ---
 
-## Phase 3：自动通告回主会话
+## 节点设计
 
-当 planner 完成后：
-- 运行时自动向主会话回传完成结果
-- CEO 将结果写入 artifacts / events / node status
+### 1. `NODE-PLAN-001`
+- title: `Plan research workflow`
+- role: `planner`
+- kind: `plan`
+- 目标：定义本次 research 流程的节点与依赖
 
-如果 planner 阻塞或失败：
-- 同样自动通告主会话
-- CEO 决定重试、改派或暂停
+### 2. `NODE-RESEARCH-001`
+- title: `Collect primary-source research`
+- role: `worker-research`
+- kind: `execute`
+- depends_on: `NODE-PLAN-001`
+- 目标：采集本地一手规范依据
 
----
+### 3. `NODE-WRITE-001`
+- title: `Write synthesis brief`
+- role: `writer`
+- kind: `synthesize`
+- depends_on: `NODE-RESEARCH-001`
+- 目标：输出结构化研究简报
 
-## Phase 4：CEO spawn reviewer
-
-当 plan node 完成后：
-- CEO 创建 review node 或直接创建 review request
-- spawn reviewer 独立会话
-- reviewer 审核 planner 输出
-
-返回：
-- approve / reject / conditional_approve
-- reasons[]
-- required_changes[]
-
----
-
-## Phase 5：CEO 决策
-
-### 若 approve
-- task 进入 `dispatched` 或下一阶段
-- CEO 可继续派发 worker node
-
-### 若 reject
-- task 进入 `plan_rejected`
-- planner node 返工
-- CEO 决定是否复用原 planner session
+### 4. `NODE-REVIEW-001`
+- title: `Review final brief`
+- role: `reviewer`
+- kind: `review`
+- depends_on: `NODE-WRITE-001`
+- 目标：做最终结果门，决定 approve / reject
 
 ---
 
-## 会话治理要求
+## 实际运行结果
 
-### 1. 独立会话
-planner / reviewer 必须是独立会话，不在主会话内串行执行。
+### Task 最终状态
+- `delivered`
 
-### 2. 禁止套娃
-对子 Agent 的 prompt / protocol 必须明确声明：
-- 不允许生成新的 agent / session
-- 如需更多资源，必须回报 CEO
+### Node 最终状态
+- `NODE-PLAN-001`: `done`
+- `NODE-RESEARCH-001`: `done`
+- `NODE-WRITE-001`: `done`
+- `NODE-REVIEW-001`: `done`
 
-### 3. 并发预算
-在 spawn 前，CEO 应先检查当前活跃子会话数。
+### Review 结果
+- review count: `2`
+- research 节点已过一次结果门
+- final brief 已过一次结果门
 
-默认策略：
-- `< 8`：可继续 spawn
-- `>= 8`：进入排队或延后
-
-### 4. 自动通告
-要求子会话完成后：
-- 结果能自动回流主会话
-- 主会话收到后更新 task/node 台账
+### Event 记录
+- event count: `34`
 
 ---
 
-## 最小成功标准
+## 已验证能力
 
-这条工作流跑通，说明 OPC 已经具备：
+### 1. dispatch payload 已生成
 
-- 真正的独立会话调度
-- session 与 node 的绑定关系
-- 主会话接收自动结果回流
-- 单层多 Agent 治理秩序
-- 向后扩展 worker 执行层的基础
+已为以下节点输出 dispatch artifact：
+
+- `tasks/TASK-REAL-RESEARCH/artifacts/NODE-RESEARCH-001-dispatch.json`
+- `tasks/TASK-REAL-RESEARCH/artifacts/NODE-WRITE-001-dispatch.json`
+- `tasks/TASK-REAL-RESEARCH/artifacts/NODE-REVIEW-001-dispatch.json`
+
+说明 OPC 已可把 mission / working / policy / output contract 稳定下发给执行者。
+
+### 2. result recording 已落地
+
+本次 workflow 形成的稳定产物包括：
+
+- `docs/first-real-workflow.md`
+- `tasks/TASK-REAL-RESEARCH/artifacts/research-brief.md`
+- `tasks/TASK-REAL-RESEARCH/artifacts/final-brief.md`
+
+说明 `record-result` 已可用于把节点成果沉淀成稳定 artifact。
+
+### 3. review gate 已闭环
+
+本次 workflow 明确经历了：
+
+- research 节点进入 `review_pending` 并通过 review
+- write 节点进入 `review_pending`
+- reviewer 节点完成结果门放行
+
+说明 review gate 已从文档概念进入可执行流程。
+
+### 4. resume cursor 已闭环
+
+最终 `task-summary`：
+
+```json
+{
+  "completed_nodes": [
+    "NODE-PLAN-001",
+    "NODE-RESEARCH-001",
+    "NODE-REVIEW-001",
+    "NODE-WRITE-001"
+  ],
+  "next_nodes": [],
+  "stable_artifacts": [
+    "docs/first-real-workflow.md",
+    "tasks/TASK-REAL-RESEARCH/artifacts/research-brief.md",
+    "tasks/TASK-REAL-RESEARCH/artifacts/final-brief.md"
+  ]
+}
+```
+
+这意味着：
+
+- 已完成节点可默认跳过
+- 没有待执行节点时可直接判定闭环完成
+- 稳定产物可供后续 resume / audit / reuse
 
 ---
 
-## 下一步
+## 任务产出摘要
 
-当这条工作流稳定后，可扩展到：
-- planner -> reviewer -> worker-code
-- planner -> reviewer -> worker-doc
-- 并行 worker + 汇总 reviewer
+本次 research workflow 的最终简报，沉淀了 OPC v1 的两类硬规则：
+
+### Review gate
+默认高优先触发场景：
+- 改代码
+- 对外发送
+- 公开发布
+- 修改长期文档 / 记忆
+- 涉及敏感凭据或登录态
+
+### Resume / recovery
+默认硬约束：
+- 从 task state 恢复，而不是从聊天记录猜
+- completed nodes 默认跳过
+- stable artifacts 默认可复用
+- next executable nodes 必须可从依赖状态直接推导
+- CEO session 可手动接管 blocked / failed 节点
+
+---
+
+## 它证明了什么
+
+这条样例证明 OPC v1 已经具备以下最小闭环能力：
+
+1. **真实 task 台账**：task / node / review / event 均已落地
+2. **状态机治理**：节点按合法状态推进
+3. **稳定派发**：dispatch payload 可生成并持久化
+4. **结果沉淀**：worker / writer / reviewer 产出都能写回 artifact ledger
+5. **质量门闭环**：review gate 已真实触发并记录
+6. **恢复语义**：resume cursor 可回答“完成了什么、还能从哪续跑”
+7. **最终交付**：task 已可从 planning 推进到 delivered
+
+---
+
+## 当前意义
+
+`TASK-REAL-RESEARCH` 不是单节点 demo，也不是纸面流程图。
+
+它已经是 OPC 第一条**真实跑完闭环**的 workflow 样例，标志着 OPC 已从“概念性文档系统”进入：
+
+> **可操作的轻控制面 + 已验证的真实 workflow 阶段**
+
+---
+
+## 下一步建议
+
+### P1
+- 补一条同等粒度的 coding workflow
+- 补一条同等粒度的 social workflow
+- 把 TODO 中“三条真实工作流跑通”从 research 扩到全套
+
+### P2
+- 给 research / coding / social 都补带 `bind-session` 的 runtime 版本
+- 用 `sessions_spawn` / `sessions_send` 跑真正独立会话的 planner / worker / reviewer
+- 继续验证 OPC 与 OpenClaw runtime 的桥接强度
+
+---
+
+## 结论
+
+`TASK-REAL-RESEARCH` 已完成并交付。
+
+它证明 OPC 当前控制面已经足以支撑一条真实的、可审计的、可恢复的 research workflow；下一步重点不再是重写设计，而是继续把 coding / social 两条真实链路跑通。

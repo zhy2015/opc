@@ -1,0 +1,17 @@
+{
+  "review_id": "REV-092472CB",
+  "task_id": "TASK-REAL-CODING",
+  "target_node_id": "NODE-CODE-001",
+  "reviewer_role": "reviewer",
+  "reviewer_session": null,
+  "stage": "result_gate",
+  "decision": "approve",
+  "reasons": [
+    "input-ref support improves dispatch and artifact lineage without widening scope"
+  ],
+  "required_changes": [],
+  "severity": "low",
+  "score": 1.0,
+  "notes": "Approved for delivery.",
+  "created_at": "2026-03-25T08:43:42Z"
+}

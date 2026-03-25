@@ -1,0 +1,35 @@
+{
+  "node_id": "NODE-DELIVER-001",
+  "task_id": "TASK-REAL-CODING",
+  "kind": "deliver",
+  "title": "Prepare coding delivery summary",
+  "assigned_role": "synthesizer",
+  "assigned_session": null,
+  "status": "done",
+  "depends_on": [
+    "NODE-REVIEW-001"
+  ],
+  "input_refs": [
+    "scripts/opc.py",
+    "reviews/TASK-REAL-CODING-approval.md"
+  ],
+  "output_refs": [
+    "tasks/TASK-REAL-CODING/artifacts/delivery-summary.md"
+  ],
+  "instructions": "",
+  "acceptance_criteria": [
+    "Summarizes shipped change and next action"
+  ],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "2026-03-25T08:43:04Z",
+  "updated_at": "2026-03-25T08:43:42Z",
+  "spawned_by": null,
+  "runtime": null,
+  "session_mode": null,
+  "dispatch_payload_ref": "tasks/TASK-REAL-CODING/artifacts/NODE-DELIVER-001-dispatch.json",
+  "result_summary": "Prepared coding delivery summary."
+}

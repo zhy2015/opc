@@ -1,0 +1,17 @@
+{
+  "review_id": "REV-01DF0D9C",
+  "task_id": "TASK-REAL-RESEARCH",
+  "target_node_id": "NODE-WRITE-001",
+  "reviewer_role": "reviewer",
+  "reviewer_session": null,
+  "stage": "result_gate",
+  "decision": "approve",
+  "reasons": [
+    "final brief is consistent with v1 spec and control-plane audit"
+  ],
+  "required_changes": [],
+  "severity": "low",
+  "score": 1.0,
+  "notes": "Approved for delivery.",
+  "created_at": "2026-03-25T08:38:14Z"
+}

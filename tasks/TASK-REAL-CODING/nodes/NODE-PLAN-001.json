@@ -1,0 +1,30 @@
+{
+  "node_id": "NODE-PLAN-001",
+  "task_id": "TASK-REAL-CODING",
+  "kind": "plan",
+  "title": "Plan coding workflow",
+  "assigned_role": "planner",
+  "assigned_session": null,
+  "status": "done",
+  "depends_on": [],
+  "input_refs": [],
+  "output_refs": [
+    "docs/real-coding-workflow.md"
+  ],
+  "instructions": "",
+  "acceptance_criteria": [
+    "Defines coding nodes and dependencies"
+  ],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "2026-03-25T08:43:04Z",
+  "updated_at": "2026-03-25T08:43:04Z",
+  "spawned_by": null,
+  "runtime": null,
+  "session_mode": null,
+  "dispatch_payload_ref": null,
+  "result_summary": "Planner defined plan -> code -> review -> deliver sequence for coding workflow."
+}

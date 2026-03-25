@@ -1,0 +1,32 @@
+{
+  "node_id": "NODE-WRITE-001",
+  "task_id": "TASK-REAL-RESEARCH",
+  "kind": "synthesize",
+  "title": "Write synthesis brief",
+  "assigned_role": "writer",
+  "assigned_session": null,
+  "status": "done",
+  "depends_on": [
+    "NODE-RESEARCH-001"
+  ],
+  "input_refs": [],
+  "output_refs": [
+    "tasks/TASK-REAL-RESEARCH/artifacts/final-brief.md"
+  ],
+  "instructions": "",
+  "acceptance_criteria": [
+    "Produces structured draft"
+  ],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "2026-03-25T08:35:59Z",
+  "updated_at": "2026-03-25T08:38:14Z",
+  "spawned_by": null,
+  "runtime": null,
+  "session_mode": null,
+  "dispatch_payload_ref": "tasks/TASK-REAL-RESEARCH/artifacts/NODE-WRITE-001-dispatch.json",
+  "result_summary": "Produced final synthesis brief for review."
+}
