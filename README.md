@@ -26,11 +26,14 @@ OPC 是一套面向 OpenClaw 的多 Agent 管理架构草案。
 ## 推荐阅读顺序
 
 1. `docs/vision.md` — 愿景与核心思想
-2. `docs/org-model.md` — 组织模型：CEO、部门、岗位
-3. `docs/control-plane.md` — 管理面：状态、资源、上下文、权限
-4. `docs/runtime-architecture.md` — OpenClaw 运行时映射
-5. `docs/task-lifecycle.md` — 任务状态机与流转规则
-6. `docs/mvp-plan.md` — 最小可跑落地路径
+2. `docs/opc-architecture.md` — 总体架构总览
+3. `docs/org-model.md` — 组织模型：CEO、部门、岗位
+4. `docs/control-plane.md` — 管理面：状态、资源、上下文、权限
+5. `docs/runtime-architecture.md` — OpenClaw 运行时映射
+6. `docs/task-lifecycle.md` — 任务状态机与流转规则
+7. `docs/capability-mapping.md` — 对 edict 与其他 skill 的能力吸纳矩阵
+8. `docs/design-deltas.md` — OPC 相对其他方案的设计差异
+9. `docs/mvp-plan.md` — 最小可跑落地路径
 
 ## 一句话定义
 
