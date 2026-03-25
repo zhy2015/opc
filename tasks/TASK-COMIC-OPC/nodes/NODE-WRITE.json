@@ -1,0 +1,27 @@
+{
+  "node_id": "NODE-WRITE",
+  "task_id": "TASK-COMIC-OPC",
+  "kind": "document",
+  "title": "Write final comic script and storyboard",
+  "assigned_role": "worker-doc",
+  "assigned_session": null,
+  "status": "queued",
+  "depends_on": [
+    "NODE-PLAN"
+  ],
+  "input_refs": [],
+  "output_refs": [],
+  "instructions": "Produce the final comic script and storyboard for a knowledge comic introducing OPC architecture.",
+  "acceptance_criteria": [],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "2026-03-25T03:07:38Z",
+  "updated_at": "2026-03-25T03:07:38Z",
+  "spawned_by": null,
+  "runtime": null,
+  "session_mode": null,
+  "dispatch_payload_ref": null
+}

@@ -62,3 +62,8 @@ python3 scripts/opc.py create-task \
   --title "Design OPC runtime MVP" \
   --goal "Build a minimal runnable control loop for OPC"
 ```
+
+## 已完成的真实演练
+
+- `docs/multi-agent-demo-comic-run.md`：一次真实的 CEO → planner → reviewer → writer 多 agent 演练记录
+- `artifacts/comics/opc-architecture-comic-script.md`：用该链路产出的 OPC 架构知识漫画脚本

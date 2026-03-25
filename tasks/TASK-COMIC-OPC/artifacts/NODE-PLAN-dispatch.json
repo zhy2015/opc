@@ -1,0 +1,31 @@
+{
+  "task_id": "TASK-COMIC-OPC",
+  "node_id": "NODE-PLAN",
+  "role": "planner",
+  "mission_context": {
+    "task_title": "Create a comic explaining OPC architecture",
+    "goal": "Use a multi-agent workflow to produce a knowledge comic script and storyboard introducing the OPC system architecture",
+    "priority": "high",
+    "node_title": "Plan comic production workflow",
+    "acceptance_criteria": []
+  },
+  "working_context": {
+    "task_context_refs": [],
+    "input_refs": [],
+    "depends_on": [],
+    "instructions": "Design a concise multi-agent plan for producing a knowledge comic that introduces OPC system architecture. Respect OPC rules: independent sessions, no nested spawning, max 8 concurrent child sessions, auto-report back to CEO."
+  },
+  "policy_context": {
+    "role_boundary": "Only complete the assigned node.",
+    "must_not": [
+      "Do not change task scope.",
+      "Do not bypass review gates.",
+      "Do not mark unrelated nodes complete."
+    ]
+  },
+  "output_contract": {
+    "review_required": true,
+    "expected_output_refs": [],
+    "artifact_dir": "tasks/TASK-COMIC-OPC/artifacts"
+  }
+}
