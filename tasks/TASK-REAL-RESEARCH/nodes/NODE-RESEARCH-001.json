@@ -4,12 +4,14 @@
   "kind": "execute",
   "title": "Collect primary-source research",
   "assigned_role": "worker-research",
-  "assigned_session": null,
+  "assigned_session": "sess_demo_research_001",
   "status": "done",
   "depends_on": [
     "NODE-PLAN-001"
   ],
-  "input_refs": [],
+  "input_refs": [
+    "tasks/TASK-REAL-RESEARCH/artifacts/NODE-RESEARCH-001-dispatch.json"
+  ],
   "output_refs": [
     "tasks/TASK-REAL-RESEARCH/artifacts/research-brief.md"
   ],
@@ -23,10 +25,11 @@
   "review_required": true,
   "estimated_effort": "medium",
   "created_at": "2026-03-25T08:35:59Z",
-  "updated_at": "2026-03-25T08:38:14Z",
-  "spawned_by": null,
-  "runtime": null,
-  "session_mode": null,
+  "updated_at": "2026-03-25T11:01:10Z",
+  "spawned_by": "ceo",
+  "runtime": "subagent",
+  "session_mode": "session",
   "dispatch_payload_ref": "tasks/TASK-REAL-RESEARCH/artifacts/NODE-RESEARCH-001-dispatch.json",
-  "result_summary": "Collected core OPC governance findings from local spec, orchestration, audit, and usage docs."
+  "result_summary": "Bound demo session and confirmed stable research artifact linkage for runtime bridge validation.",
+  "worker_type": "research-worker"
 }

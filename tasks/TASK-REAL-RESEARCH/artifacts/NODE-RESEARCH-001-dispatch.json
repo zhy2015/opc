@@ -29,7 +29,9 @@
   },
   "output_contract": {
     "review_required": true,
-    "expected_output_refs": [],
+    "expected_output_refs": [
+      "tasks/TASK-REAL-RESEARCH/artifacts/research-brief.md"
+    ],
     "artifact_dir": "tasks/TASK-REAL-RESEARCH/artifacts"
   }
 }

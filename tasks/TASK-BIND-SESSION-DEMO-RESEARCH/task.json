@@ -1,0 +1,40 @@
+{
+  "task_id": "TASK-BIND-SESSION-DEMO-RESEARCH",
+  "title": "Bind session demo research",
+  "goal": "Validate render-bind-result-review closure on a research lane",
+  "status": "planned",
+  "priority": "medium",
+  "owner": "ceo-session",
+  "acceptance_criteria": [
+    "dispatch rendered",
+    "session bound",
+    "review pending"
+  ],
+  "constraints": [],
+  "context_refs": [],
+  "tags": [],
+  "budget": {
+    "max_parallel": 2,
+    "preferred_models": [
+      "default"
+    ],
+    "token_budget": 100000,
+    "cost_budget_usd": 5
+  },
+  "resume_cursor": {
+    "completed_nodes": [],
+    "next_nodes": [
+      "NODE-RESEARCH-001"
+    ],
+    "stable_artifacts": []
+  },
+  "delivery": {
+    "channel": "main-session",
+    "format": "markdown"
+  },
+  "created_at": "2026-03-25T11:01:32Z",
+  "updated_at": "2026-03-25T11:01:32Z",
+  "orchestration_version": "opc-v0.2",
+  "execution_model": "openclaw-native",
+  "task_class": "C"
+}

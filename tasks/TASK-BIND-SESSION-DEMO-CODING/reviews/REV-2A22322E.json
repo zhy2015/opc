@@ -1,0 +1,15 @@
+{
+  "review_id": "REV-2A22322E",
+  "task_id": "TASK-BIND-SESSION-DEMO-CODING",
+  "target_node_id": "NODE-CODE-001",
+  "reviewer_role": "reviewer",
+  "reviewer_session": null,
+  "stage": "result_gate",
+  "decision": "approve",
+  "reasons": [],
+  "required_changes": [],
+  "severity": "low",
+  "score": 1.0,
+  "notes": "approve demo",
+  "created_at": "2026-03-25T11:13:32Z"
+}

@@ -1,0 +1,42 @@
+{
+  "task_id": "TASK-BIND-SESSION-DEMO-CODING",
+  "title": "Bind session demo coding",
+  "goal": "Validate render-bind-result-review closure on a coding lane",
+  "status": "delivered",
+  "priority": "medium",
+  "owner": "ceo-session",
+  "acceptance_criteria": [
+    "dispatch rendered",
+    "session bound",
+    "review pending"
+  ],
+  "constraints": [],
+  "context_refs": [],
+  "tags": [],
+  "budget": {
+    "max_parallel": 2,
+    "preferred_models": [
+      "default"
+    ],
+    "token_budget": 100000,
+    "cost_budget_usd": 5
+  },
+  "resume_cursor": {
+    "completed_nodes": [
+      "NODE-CODE-001"
+    ],
+    "next_nodes": [],
+    "stable_artifacts": [
+      "tasks/TASK-BIND-SESSION-DEMO-CODING/artifacts/implementation-summary.md"
+    ]
+  },
+  "delivery": {
+    "channel": "main-session",
+    "format": "markdown"
+  },
+  "created_at": "2026-03-25T11:06:01Z",
+  "updated_at": "2026-03-25T11:13:32Z",
+  "orchestration_version": "opc-v0.2",
+  "execution_model": "openclaw-native",
+  "task_class": "C"
+}

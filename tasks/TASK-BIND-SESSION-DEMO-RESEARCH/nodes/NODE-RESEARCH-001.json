@@ -1,0 +1,31 @@
+{
+  "node_id": "NODE-RESEARCH-001",
+  "task_id": "TASK-BIND-SESSION-DEMO-RESEARCH",
+  "kind": "execute",
+  "title": "Collect research under bound session",
+  "assigned_role": "worker-research",
+  "assigned_session": "sess_demo_research_001",
+  "status": "review_pending",
+  "depends_on": [],
+  "input_refs": [
+    "tasks/TASK-BIND-SESSION-DEMO-RESEARCH/artifacts/NODE-RESEARCH-001-dispatch.json"
+  ],
+  "output_refs": [
+    "tasks/TASK-BIND-SESSION-DEMO-RESEARCH/artifacts/research-findings.md"
+  ],
+  "instructions": "",
+  "acceptance_criteria": [],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "2026-03-25T11:01:32Z",
+  "updated_at": "2026-03-25T11:01:32Z",
+  "spawned_by": "ceo",
+  "runtime": "subagent",
+  "session_mode": "session",
+  "dispatch_payload_ref": "tasks/TASK-BIND-SESSION-DEMO-RESEARCH/artifacts/NODE-RESEARCH-001-dispatch.json",
+  "worker_type": "research-worker",
+  "result_summary": "Bound demo session and validated ledger writeback path."
+}

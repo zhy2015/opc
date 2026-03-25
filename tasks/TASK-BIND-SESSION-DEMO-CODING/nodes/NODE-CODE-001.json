@@ -1,0 +1,31 @@
+{
+  "node_id": "NODE-CODE-001",
+  "task_id": "TASK-BIND-SESSION-DEMO-CODING",
+  "kind": "execute",
+  "title": "Implement under bound coding session",
+  "assigned_role": "worker-code",
+  "assigned_session": "sess_demo_code_001",
+  "status": "done",
+  "depends_on": [],
+  "input_refs": [
+    "tasks/TASK-BIND-SESSION-DEMO-CODING/artifacts/NODE-CODE-001-dispatch.json"
+  ],
+  "output_refs": [
+    "tasks/TASK-BIND-SESSION-DEMO-CODING/artifacts/implementation-summary.md"
+  ],
+  "instructions": "",
+  "acceptance_criteria": [],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "2026-03-25T11:06:01Z",
+  "updated_at": "2026-03-25T11:13:32Z",
+  "spawned_by": "ceo",
+  "runtime": "subagent",
+  "session_mode": "session",
+  "dispatch_payload_ref": "tasks/TASK-BIND-SESSION-DEMO-CODING/artifacts/NODE-CODE-001-dispatch.json",
+  "worker_type": "coding-worker",
+  "result_summary": "Bound coding session and validated implementation writeback path."
+}

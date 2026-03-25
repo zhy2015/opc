@@ -242,16 +242,17 @@ Delivery
 ### Type D：持续会话任务
 
 特点：
-- 需要 thread-bound / session-bound 持续推进
+- 需要 session-bound 持续推进
 - 需要长期上下文
 - 用户会多轮追加指令
 
 策略：
-- 优先 ACP persistent session
-- OPC 负责上层任务状态，不吞掉长会话语义
+- 优先使用 OpenClaw 原生持续 session
+- 如需编码执行，优先挂接 `coding-agent` 作为 worker runtime
+- OPC 只负责上层任务状态，不吞掉长会话语义
 
 示例：
-- Codex 持续开发
+- 持续开发
 - 长周期项目推进
 - 多轮迭代内容生产
 

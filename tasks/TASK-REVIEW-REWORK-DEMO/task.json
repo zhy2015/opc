@@ -1,0 +1,38 @@
+{
+  "task_id": "TASK-REVIEW-REWORK-DEMO",
+  "title": "Review rework demo",
+  "goal": "Validate review reject auto writeback",
+  "status": "rework",
+  "priority": "medium",
+  "owner": "ceo-session",
+  "acceptance_criteria": [
+    "rework reflected"
+  ],
+  "constraints": [],
+  "context_refs": [],
+  "tags": [],
+  "budget": {
+    "max_parallel": 2,
+    "preferred_models": [
+      "default"
+    ],
+    "token_budget": 100000,
+    "cost_budget_usd": 5
+  },
+  "resume_cursor": {
+    "completed_nodes": [],
+    "next_nodes": [
+      "NODE-TEST-001"
+    ],
+    "stable_artifacts": []
+  },
+  "delivery": {
+    "channel": "main-session",
+    "format": "markdown"
+  },
+  "created_at": "2026-03-25T11:13:32Z",
+  "updated_at": "2026-03-25T11:13:32Z",
+  "orchestration_version": "opc-v0.2",
+  "execution_model": "openclaw-native",
+  "task_class": "C"
+}

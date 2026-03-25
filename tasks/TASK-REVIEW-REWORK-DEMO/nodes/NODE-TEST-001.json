@@ -1,0 +1,29 @@
+{
+  "node_id": "NODE-TEST-001",
+  "task_id": "TASK-REVIEW-REWORK-DEMO",
+  "kind": "execute",
+  "title": "Demo node for review reject",
+  "assigned_role": "worker",
+  "assigned_session": null,
+  "status": "rework",
+  "depends_on": [],
+  "input_refs": [],
+  "output_refs": [
+    "tasks/TASK-REVIEW-REWORK-DEMO/artifacts/demo.md"
+  ],
+  "instructions": "",
+  "acceptance_criteria": [],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "2026-03-25T11:13:32Z",
+  "updated_at": "2026-03-25T11:13:32Z",
+  "spawned_by": null,
+  "runtime": null,
+  "session_mode": null,
+  "dispatch_payload_ref": null,
+  "worker_type": "subagent",
+  "result_summary": "demo result"
+}

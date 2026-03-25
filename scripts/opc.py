@@ -17,13 +17,14 @@ VALID_TASK_TRANSITIONS = {
     "plan_review": {"plan_rejected", "dispatched", "cancelled"},
     "plan_rejected": {"planned", "cancelled"},
     "dispatched": {"running", "cancelled"},
-    "running": {"blocked", "awaiting_review", "paused", "failed", "cancelled"},
-    "blocked": {"paused", "cancelled"},
-    "awaiting_review": {"rework", "delivered", "cancelled"},
+    "running": {"blocked", "awaiting_review", "paused", "failed", "cancelled", "result_review"},
+    "blocked": {"paused", "cancelled", "running"},
+    "awaiting_review": {"rework", "delivered", "cancelled", "result_review"},
+    "result_review": {"rework", "delivered", "cancelled"},
     "rework": {"running", "cancelled"},
-    "paused": {"resumable", "cancelled"},
+    "paused": {"resumable", "cancelled", "running"},
     "resumable": {"running", "cancelled"},
-    "failed": {"paused", "cancelled"},
+    "failed": {"paused", "cancelled", "running"},
     "delivered": {"archived"},
     "archived": set(),
     "cancelled": set(),
@@ -33,10 +34,10 @@ VALID_NODE_TRANSITIONS = {
     "queued": {"assigned", "cancelled", "skipped"},
     "assigned": {"running", "cancelled", "skipped"},
     "running": {"blocked", "review_pending", "done", "failed", "cancelled"},
-    "blocked": {"assigned", "cancelled"},
+    "blocked": {"assigned", "cancelled", "running"},
     "review_pending": {"rework", "done", "cancelled"},
     "rework": {"running", "cancelled"},
-    "failed": {"assigned", "cancelled"},
+    "failed": {"assigned", "cancelled", "running"},
     "done": set(),
     "skipped": set(),
     "cancelled": set(),
@@ -54,6 +55,9 @@ KEY_EVENT_TYPES = {
     "node_skipped",
     "task_created",
     "task_updated",
+    "plan_initialized",
+    "dispatch_readiness_checked",
+    "task_controlled",
 }
 
 
@@ -155,6 +159,16 @@ def load_events(task_id: str):
     return events
 
 
+def load_nodes(task_id: str):
+    task_dir = TASKS_DIR / task_id / "nodes"
+    return [load_json(p) for p in sorted(task_dir.glob("*.json"))]
+
+
+def load_reviews(task_id: str):
+    task_dir = TASKS_DIR / task_id / "reviews"
+    return [load_json(p) for p in sorted(task_dir.glob("*.json"))]
+
+
 def compute_task_progress(nodes):
     if not nodes:
         return 0
@@ -184,7 +198,7 @@ def recent_key_events(events, limit):
 
 def load_runtime_sessions_map(args):
     sessions = []
-    if not args.sessions_file:
+    if not getattr(args, "sessions_file", None):
         return {}
     sessions_path = Path(args.sessions_file)
     if not sessions_path.exists():
@@ -281,6 +295,41 @@ def sync_resume_cursor(task_id: str):
     save_json(path, task)
 
 
+def recompute_task_status(task_id: str):
+    task, path = load_task(task_id)
+    nodes = load_nodes(task_id)
+    if not nodes:
+        return task.get("status")
+
+    old = task.get("status")
+    node_statuses = [n.get("status") for n in nodes]
+
+    if all(status in {"done", "skipped", "cancelled"} for status in node_statuses):
+        new = "delivered"
+    elif any(status == "rework" for status in node_statuses):
+        new = "rework"
+    elif any(status == "review_pending" for status in node_statuses):
+        new = "result_review"
+    elif any(status == "running" for status in node_statuses):
+        new = "running"
+    elif any(status == "blocked" for status in node_statuses):
+        new = "blocked"
+    elif any(status == "assigned" for status in node_statuses):
+        new = "dispatched"
+    elif any(status == "queued" for status in node_statuses):
+        new = "planned"
+    elif any(status == "failed" for status in node_statuses):
+        new = "failed"
+    else:
+        new = old
+
+    if new != old:
+        task["status"] = new
+        task["updated_at"] = now_iso()
+        save_json(path, task)
+    return new
+
+
 def create_task(args):
     task = load_json(TEMPLATES_DIR / "task.template.json")
     task_id = args.task_id or next_id("TASK")
@@ -294,6 +343,8 @@ def create_task(args):
         "created_at": ts,
         "updated_at": ts,
     })
+    task.setdefault("orchestration_version", "opc-v0.2")
+    task.setdefault("execution_model", "openclaw-native")
     if args.acceptance:
         task["acceptance_criteria"] = args.acceptance
     task_dir = ensure_task_dirs(task_id)
@@ -337,6 +388,8 @@ def create_node(args):
     })
     if args.acceptance:
         node["acceptance_criteria"] = args.acceptance
+    if args.worker_type:
+        node["worker_type"] = args.worker_type
     save_json(TASKS_DIR / args.task_id / "nodes" / (node_id + ".json"), node)
     append_event(args.task_id, node_id, "node_dispatched", args.actor, {"role": args.role, "kind": args.kind})
     if task["status"] == "plan_review":
@@ -442,12 +495,14 @@ def bind_session(args):
     node["spawned_by"] = args.actor
     node["runtime"] = args.runtime
     node["session_mode"] = args.session_mode
+    node["worker_type"] = args.worker_type or node.get("worker_type") or args.runtime
     node["updated_at"] = now_iso()
     save_json(path, node)
     append_event(args.task_id, args.node_id, "task_updated", args.actor, {
         "assigned_session": args.session_key,
         "runtime": args.runtime,
         "session_mode": args.session_mode,
+        "worker_type": node.get("worker_type"),
     })
     print("{} bound to {}".format(args.node_id, args.session_key))
 
@@ -496,6 +551,47 @@ def mark_review_pending(args):
     print("{}: {} -> review_pending".format(args.node_id, old))
 
 
+def node_complete(args):
+    node, path = load_node(args.task_id, args.node_id)
+    if node.get("status") != "running":
+        raise SystemExit("node-complete requires node status 'running', got '{}'".format(node.get("status")))
+    output_refs = list(node.get("output_refs", []))
+    for ref in args.output_ref or []:
+        if ref not in output_refs:
+            output_refs.append(ref)
+    input_refs = list(node.get("input_refs", []))
+    for ref in args.input_ref or []:
+        if ref not in input_refs:
+            input_refs.append(ref)
+    node["output_refs"] = output_refs
+    node["input_refs"] = input_refs
+    node["result_summary"] = args.summary or node.get("result_summary")
+    node.setdefault("runtime_meta", {})
+    node["runtime_meta"]["finished_at"] = args.finished_at or now_iso()
+    node["status"] = "review_pending"
+    node["updated_at"] = now_iso()
+    save_json(path, node)
+    append_event(args.task_id, args.node_id, "result_recorded", args.actor, {
+        "summary": args.summary or "",
+        "output_refs": args.output_ref or [],
+        "input_refs": args.input_ref or [],
+        "finished_at": args.finished_at or node["runtime_meta"]["finished_at"],
+    })
+    append_event(args.task_id, args.node_id, "review_requested", args.actor, {
+        "from": "running",
+        "to": "review_pending",
+        "stage": args.stage,
+        "note": args.note or "",
+    })
+    sync_resume_cursor(args.task_id)
+    print(json.dumps({
+        "task_id": args.task_id,
+        "node_id": args.node_id,
+        "status": "review_pending",
+        "output_refs": output_refs,
+    }, ensure_ascii=False, indent=2))
+
+
 def skip_node(args):
     node, path = load_node(args.task_id, args.node_id)
     old = node["status"]
@@ -511,6 +607,221 @@ def skip_node(args):
     })
     sync_resume_cursor(args.task_id)
     print("{}: {} -> skipped".format(args.node_id, old))
+
+
+def task_plan_init(args):
+    task, path = load_task(args.task_id)
+    task["status"] = "planned"
+    task["updated_at"] = now_iso()
+    if args.acceptance:
+        task["acceptance_criteria"] = args.acceptance
+    if args.task_class:
+        task["task_class"] = args.task_class
+    task["orchestration_version"] = "opc-v0.2"
+    task["execution_model"] = "openclaw-native"
+    save_json(path, task)
+    append_event(args.task_id, None, "plan_initialized", args.actor, {
+        "task_class": args.task_class,
+        "acceptance_count": len(args.acceptance or []),
+    })
+    print("{} plan initialized".format(args.task_id))
+
+
+def task_dispatch_ready(args):
+    task, _ = load_task(args.task_id)
+    nodes = load_nodes(args.task_id)
+    reviews = load_reviews(args.task_id)
+    reasons = []
+    if not nodes:
+        reasons.append("no nodes defined")
+    if task.get("status") not in {"planned", "plan_review", "dispatched", "running", "rework"}:
+        reasons.append("task status not dispatchable: {}".format(task.get("status")))
+    pending_plan_reviews = [r for r in reviews if r.get("stage") == "plan_gate" and r.get("decision") in {"reject", "rework_required"}]
+    if pending_plan_reviews:
+        reasons.append("plan gate has rejected/rework reviews")
+    plan_approvals = [r for r in reviews if r.get("stage") == "plan_gate" and r.get("decision") in {"approve", "approved", "conditional_approve"}]
+    if task.get("status") == "plan_review" and not plan_approvals:
+        reasons.append("task is in plan_review without approval")
+    node_ids = {n.get("node_id") for n in nodes}
+    for node in nodes:
+        for dep in node.get("depends_on", []) or []:
+            if dep not in node_ids:
+                reasons.append("node {} depends on missing node {}".format(node.get("node_id"), dep))
+        if node.get("status") in {"queued", "assigned", "running", "rework"}:
+            if not (node.get("assigned_role") or node.get("worker_type") or node.get("runtime")):
+                reasons.append("node {} missing executor metadata".format(node.get("node_id")))
+    ready = len(reasons) == 0
+    append_event(args.task_id, None, "dispatch_readiness_checked", args.actor, {"ready": ready, "reasons": reasons})
+    print(json.dumps({"task_id": args.task_id, "ready": ready, "reasons": reasons}, ensure_ascii=False, indent=2))
+
+
+def task_review_decision(args):
+    task, task_path = load_task(args.task_id)
+    node = None
+    node_path = None
+    if args.node_id:
+        node, node_path = load_node(args.task_id, args.node_id)
+    review = load_json(TEMPLATES_DIR / "review.template.json")
+    review_id = args.review_id or next_id("REV")
+    review.update({
+        "review_id": review_id,
+        "task_id": args.task_id,
+        "target_node_id": args.node_id,
+        "reviewer_role": args.reviewer_role,
+        "reviewer_session": None,
+        "stage": args.gate_type,
+        "decision": args.decision,
+        "reasons": args.blocking_issue or [],
+        "required_changes": args.required_change or [],
+        "notes": args.notes or "",
+        "created_at": now_iso(),
+    })
+    save_json(TASKS_DIR / args.task_id / "reviews" / (review_id + ".json"), review)
+
+    if args.gate_type == "plan_gate":
+        old = task.get("status")
+        if args.decision in {"approve", "approved", "conditional_approve"}:
+            if old == "plan_review":
+                task["status"] = "dispatched"
+        else:
+            if old in {"planned", "plan_review", "dispatched"}:
+                task["status"] = "plan_rejected"
+        task["updated_at"] = now_iso()
+        save_json(task_path, task)
+    elif args.gate_type == "result_gate":
+        if node is None:
+            raise SystemExit("result_gate requires --node-id")
+        old_node = node.get("status")
+        if args.decision in {"approve", "approved", "conditional_approve"}:
+            if old_node == "review_pending":
+                node["status"] = "done"
+            node["updated_at"] = now_iso()
+            save_json(node_path, node)
+        else:
+            if old_node in {"review_pending", "done"}:
+                node["status"] = "rework"
+                node["updated_at"] = now_iso()
+                save_json(node_path, node)
+
+    event_type = "review_passed" if args.decision in {"approve", "approved", "conditional_approve"} else "review_failed"
+    append_event(args.task_id, args.node_id, event_type, args.reviewer_role, {
+        "gate_type": args.gate_type,
+        "decision": args.decision,
+        "blocking_issues": args.blocking_issue or [],
+        "required_changes": args.required_change or [],
+    })
+    recompute_task_status(args.task_id)
+    sync_resume_cursor(args.task_id)
+    print(review_id)
+
+
+def task_control(args):
+    task, task_path = load_task(args.task_id)
+    target_node = None
+    target_node_path = None
+    old_task = task.get("status")
+    if args.node_id:
+        target_node, target_node_path = load_node(args.task_id, args.node_id)
+
+    if args.action == "pause":
+        if target_node:
+            if target_node.get("status") not in {"running", "assigned", "blocked"}:
+                raise SystemExit("node cannot be paused from {}".format(target_node.get("status")))
+            target_node["status"] = "blocked"
+            target_node["updated_at"] = now_iso()
+            save_json(target_node_path, target_node)
+        if task.get("status") in {"running", "dispatched", "blocked", "result_review"}:
+            task["status"] = "paused"
+    elif args.action == "resume":
+        if target_node:
+            if target_node.get("status") not in {"blocked", "failed", "rework"}:
+                raise SystemExit("node cannot be resumed from {}".format(target_node.get("status")))
+            target_node["status"] = "running"
+            target_node["updated_at"] = now_iso()
+            save_json(target_node_path, target_node)
+        if task.get("status") in {"paused", "resumable", "blocked", "failed", "rework"}:
+            task["status"] = "running"
+    elif args.action == "cancel":
+        if target_node:
+            if target_node.get("status") in {"done", "skipped", "cancelled"}:
+                raise SystemExit("node cannot be cancelled from {}".format(target_node.get("status")))
+            target_node["status"] = "cancelled"
+            target_node["updated_at"] = now_iso()
+            target_node["last_error"] = args.reason or target_node.get("last_error")
+            save_json(target_node_path, target_node)
+        else:
+            task["status"] = "cancelled"
+    elif args.action == "retry":
+        if not target_node:
+            raise SystemExit("retry requires --node-id")
+        if target_node.get("status") not in {"failed", "blocked", "rework"}:
+            raise SystemExit("node cannot be retried from {}".format(target_node.get("status")))
+        target_node["retry_count"] = int(target_node.get("retry_count", 0)) + 1
+        target_node["status"] = "assigned"
+        target_node["updated_at"] = now_iso()
+        save_json(target_node_path, target_node)
+        if task.get("status") in {"failed", "blocked", "rework", "paused"}:
+            task["status"] = "running"
+    else:
+        raise SystemExit("unknown action: {}".format(args.action))
+
+    task["updated_at"] = now_iso()
+    save_json(task_path, task)
+    append_event(args.task_id, args.node_id, "task_controlled", args.actor, {
+        "action": args.action,
+        "reason": args.reason or "",
+        "task_from": old_task,
+        "task_to": task.get("status"),
+    })
+    sync_resume_cursor(args.task_id)
+    print(json.dumps({
+        "task_id": args.task_id,
+        "node_id": args.node_id,
+        "action": args.action,
+        "task_status": task.get("status"),
+        "reason": args.reason,
+    }, ensure_ascii=False, indent=2))
+
+
+def task_summarize(args):
+    task, path = load_task(args.task_id)
+    nodes = load_nodes(args.task_id)
+    completed = [n for n in nodes if n.get("status") in {"done", "skipped"}]
+    lines = []
+    for node in completed:
+        lines.append("- {} | {} | {}".format(node.get("node_id"), node.get("title"), node.get("result_summary") or "no summary"))
+    summary = "\n".join(lines) if lines else "- no completed nodes yet"
+    task["delivery_summary"] = summary
+    task["updated_at"] = now_iso()
+    save_json(path, task)
+    append_event(args.task_id, None, "task_summarized", args.actor, {"completed_nodes": len(completed)})
+    print(summary)
+
+
+def task_deliver_ready(args):
+    task, path = load_task(args.task_id)
+    nodes = load_nodes(args.task_id)
+    reviews = load_reviews(args.task_id)
+    reasons = []
+    if not nodes:
+        reasons.append("no nodes defined")
+    incomplete = [n.get("node_id") for n in nodes if n.get("status") not in {"done", "skipped", "cancelled"}]
+    if incomplete:
+        reasons.append("incomplete nodes: {}".format(", ".join(incomplete)))
+    blocking_reviews = [r.get("review_id") for r in reviews if r.get("decision") in {"reject", "rework_required"}]
+    if blocking_reviews:
+        reasons.append("blocking reviews: {}".format(", ".join(blocking_reviews)))
+    if not task.get("delivery_summary"):
+        reasons.append("missing delivery_summary")
+    ready = len(reasons) == 0
+    if ready and args.auto_deliver:
+        old = task.get("status")
+        task["status"] = "delivered"
+        task["updated_at"] = now_iso()
+        save_json(path, task)
+        append_event(args.task_id, None, "task_updated", args.actor, {"from": old, "to": "delivered"})
+    append_event(args.task_id, None, "delivery_readiness_checked", args.actor, {"ready": ready, "reasons": reasons})
+    print(json.dumps({"task_id": args.task_id, "ready": ready, "reasons": reasons, "auto_delivered": ready and args.auto_deliver}, ensure_ascii=False, indent=2))
 
 
 def task_summary(args):
@@ -627,10 +938,14 @@ def task_report(args):
         print("  - 标题: {}".format(node.get("title")))
         print("  - depends_on: {}".format(", ".join(node.get("depends_on", [])) or "-"))
         print("  - runtime: {} / {}".format(node.get("runtime") or "-", node.get("session_mode") or "-"))
+        print("  - worker_type: {}".format(node.get("worker_type") or "-"))
+        print("  - assigned_session: {}".format(node.get("assigned_session") or "-"))
+        print("  - runtime_meta: {}".format(json.dumps(node.get("runtime_meta", {}), ensure_ascii=False)))
         print("  - result: {}".format(node.get("result_summary") or "-"))
         print("  - output_refs: {}".format(", ".join(node.get("output_refs", [])) or "-"))
         print("  - input_refs: {}".format(", ".join(node.get("input_refs", [])) or "-"))
         print("  - review_required: {}".format(node.get("review_required")))
+        print("  - retry_count: {}".format(node.get("retry_count", 0)))
         print("  - updated_at: {}".format(node.get("updated_at")))
         if node.get("last_error"):
             print("  - last_error: {}".format(node.get("last_error")))
@@ -684,6 +999,97 @@ def task_report(args):
         print("- 可继续从 resume_cursor.next_nodes 推进下一批节点。")
 
 
+def task_board(args):
+    task, _ = load_task(args.task_id)
+    nodes = load_nodes(args.task_id)
+    events = load_events(args.task_id)
+    reviews = load_reviews(args.task_id)
+    blocked = [n.get("node_id") for n in nodes if n.get("status") == "blocked"]
+    review_pending = [n.get("node_id") for n in nodes if n.get("status") == "review_pending"]
+    in_progress = [n.get("node_id") for n in nodes if n.get("status") in {"assigned", "running", "rework"}]
+    open_reviews = [r for r in reviews if r.get("decision") in {"reject", "rework_required"}]
+    next_actionable = task.get("resume_cursor", {}).get("next_nodes", [])
+    active_sessions = [n.get("assigned_session") for n in nodes if n.get("assigned_session")]
+    by_status = {}
+    for node in nodes:
+        status = node.get("status")
+        by_status[status] = by_status.get(status, 0) + 1
+    payload = {
+        "task_id": task.get("task_id"),
+        "title": task.get("title"),
+        "status": task.get("status"),
+        "stage": derive_stage(task, nodes),
+        "priority": task.get("priority"),
+        "progress_pct": compute_task_progress(nodes),
+        "node_counts": by_status,
+        "active_session_count": len(active_sessions),
+        "active_sessions": active_sessions,
+        "blocked_nodes": blocked,
+        "review_pending_nodes": review_pending,
+        "in_progress_nodes": in_progress,
+        "open_blocking_reviews": [r.get("review_id") for r in open_reviews],
+        "delivery_ready": all(n.get("status") in {"done", "skipped", "cancelled"} for n in nodes) and bool(task.get("delivery_summary")),
+        "next_actionable": next_actionable,
+        "recent_key_events": recent_key_events(events, args.tail),
+        "operator_summary": {
+            "focus": "review" if review_pending else "blocked" if blocked else "execution" if in_progress else "delivery" if task.get("status") == "delivered" else "next_nodes",
+            "headline": (
+                "处理 review gate" if review_pending else
+                "处理阻塞节点" if blocked else
+                "推进运行中节点" if in_progress else
+                "任务已交付" if task.get("status") == "delivered" else
+                "推进下一批节点"
+            )
+        }
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def task_list(args):
+    rows = []
+    for task_dir in sorted(TASKS_DIR.glob("TASK*")):
+        task_file = task_dir / "task.json"
+        if not task_file.exists():
+            continue
+        task = load_json(task_file)
+        nodes = load_nodes(task.get("task_id"))
+        rows.append({
+            "task_id": task.get("task_id"),
+            "title": task.get("title"),
+            "status": task.get("status"),
+            "stage": derive_stage(task, nodes),
+            "priority": task.get("priority"),
+            "progress_pct": compute_task_progress(nodes),
+            "node_count": len(nodes),
+            "updated_at": task.get("updated_at"),
+        })
+    print(json.dumps(rows, ensure_ascii=False, indent=2))
+
+
+def task_index(args):
+    rows = []
+    for task_dir in sorted(TASKS_DIR.glob("TASK*")):
+        task_file = task_dir / "task.json"
+        if not task_file.exists():
+            continue
+        task = load_json(task_file)
+        nodes = load_nodes(task.get("task_id"))
+        rows.append((task.get("updated_at") or "", task, nodes))
+    rows.sort(key=lambda x: x[0], reverse=True)
+    print("# OPC Task Index")
+    for _, task, nodes in rows[:args.limit]:
+        print("- {} | {} | {} | {}% | {} nodes".format(
+            task.get("task_id"),
+            task.get("status"),
+            task.get("title"),
+            compute_task_progress(nodes),
+            len(nodes),
+        ))
+        print("  - stage: {}".format(derive_stage(task, nodes)))
+        print("  - priority: {}".format(task.get("priority")))
+        print("  - updated_at: {}".format(task.get("updated_at")))
+
+
 def show_task(args):
     task, _ = load_task(args.task_id)
     task_dir = TASKS_DIR / args.task_id
@@ -722,6 +1128,7 @@ def main():
     p.add_argument("--kind", default="execute")
     p.add_argument("--title", required=True)
     p.add_argument("--role", required=True)
+    p.add_argument("--worker-type")
     p.add_argument("--status", default="queued")
     p.add_argument("--depends-on", nargs="*")
     p.add_argument("--instructions")
@@ -760,6 +1167,7 @@ def main():
     p.add_argument("node_id")
     p.add_argument("session_key")
     p.add_argument("--runtime", default="subagent")
+    p.add_argument("--worker-type")
     p.add_argument("--session-mode", default="session")
     p.add_argument("--actor", default="ceo-session")
     p.set_defaults(func=bind_session)
@@ -770,8 +1178,21 @@ def main():
     p.add_argument("--output-ref", action="append")
     p.add_argument("--input-ref", action="append")
     p.add_argument("--summary")
+    p.add_argument("--finished-at")
     p.add_argument("--actor", default="worker")
     p.set_defaults(func=record_result)
+
+    p = sub.add_parser("node-complete")
+    p.add_argument("task_id")
+    p.add_argument("node_id")
+    p.add_argument("--output-ref", action="append")
+    p.add_argument("--input-ref", action="append")
+    p.add_argument("--summary", required=True)
+    p.add_argument("--finished-at")
+    p.add_argument("--stage", default="result_gate")
+    p.add_argument("--note")
+    p.add_argument("--actor", default="worker")
+    p.set_defaults(func=node_complete)
 
     p = sub.add_parser("mark-review-pending")
     p.add_argument("task_id")
@@ -787,6 +1208,54 @@ def main():
     p.add_argument("--reason", required=True)
     p.add_argument("--actor", default="dispatcher")
     p.set_defaults(func=skip_node)
+
+    p = sub.add_parser("task-plan-init")
+    p.add_argument("task_id")
+    p.add_argument("--task-class", choices=["A", "B", "C", "D"], default="C")
+    p.add_argument("--acceptance", nargs="*")
+    p.add_argument("--actor", default="planner")
+    p.set_defaults(func=task_plan_init)
+
+    p = sub.add_parser("task-dispatch-ready")
+    p.add_argument("task_id")
+    p.add_argument("--actor", default="dispatcher")
+    p.set_defaults(func=task_dispatch_ready)
+
+    p = sub.add_parser("task-review-decision")
+    p.add_argument("task_id")
+    p.add_argument("--node-id")
+    p.add_argument("--review-id")
+    p.add_argument("--reviewer-role", default="reviewer")
+    p.add_argument("--gate-type", choices=["plan_gate", "result_gate"], required=True)
+    p.add_argument("--decision", choices=["approve", "approved", "conditional_approve", "reject", "rework_required"], required=True)
+    p.add_argument("--blocking-issue", action="append")
+    p.add_argument("--required-change", action="append")
+    p.add_argument("--notes")
+    p.set_defaults(func=task_review_decision)
+
+    p = sub.add_parser("task-control")
+    p.add_argument("task_id")
+    p.add_argument("action", choices=["pause", "resume", "cancel", "retry"])
+    p.add_argument("--node-id")
+    p.add_argument("--reason")
+    p.add_argument("--actor", default="operator")
+    p.set_defaults(func=task_control)
+
+    p = sub.add_parser("task-board")
+    p.add_argument("task_id")
+    p.add_argument("--tail", type=int, default=5)
+    p.set_defaults(func=task_board)
+
+    p = sub.add_parser("task-summarize")
+    p.add_argument("task_id")
+    p.add_argument("--actor", default="summarizer")
+    p.set_defaults(func=task_summarize)
+
+    p = sub.add_parser("task-deliver-ready")
+    p.add_argument("task_id")
+    p.add_argument("--auto-deliver", action="store_true")
+    p.add_argument("--actor", default="summarizer")
+    p.set_defaults(func=task_deliver_ready)
 
     p = sub.add_parser("task-summary")
     p.add_argument("task_id")
@@ -815,6 +1284,13 @@ def main():
     p.add_argument("--sessions-file")
     p.add_argument("--stale-after-minutes", type=float, default=30)
     p.set_defaults(func=task_report)
+
+    p = sub.add_parser("task-list")
+    p.set_defaults(func=task_list)
+
+    p = sub.add_parser("task-index")
+    p.add_argument("--limit", type=int, default=20)
+    p.set_defaults(func=task_index)
 
     p = sub.add_parser("show-task")
     p.add_argument("task_id")

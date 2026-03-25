@@ -1,0 +1,31 @@
+{
+  "node_id": "NODE-OPERATE-001",
+  "task_id": "TASK-BIND-SESSION-DEMO-SOCIAL",
+  "kind": "execute",
+  "title": "Operate under bound social session",
+  "assigned_role": "operator-social",
+  "assigned_session": "sess_demo_social_001",
+  "status": "review_pending",
+  "depends_on": [],
+  "input_refs": [
+    "tasks/TASK-BIND-SESSION-DEMO-SOCIAL/artifacts/NODE-OPERATE-001-dispatch.json"
+  ],
+  "output_refs": [
+    "tasks/TASK-BIND-SESSION-DEMO-SOCIAL/artifacts/platform-verification.md"
+  ],
+  "instructions": "",
+  "acceptance_criteria": [],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "2026-03-25T11:06:02Z",
+  "updated_at": "2026-03-25T11:06:02Z",
+  "spawned_by": "ceo",
+  "runtime": "subagent",
+  "session_mode": "session",
+  "dispatch_payload_ref": "tasks/TASK-BIND-SESSION-DEMO-SOCIAL/artifacts/NODE-OPERATE-001-dispatch.json",
+  "worker_type": "social-worker",
+  "result_summary": "Bound social session and validated external-action ledger writeback path."
+}

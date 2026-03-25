@@ -13,6 +13,22 @@ OPC（OpenClaw Process Company）是面向 OpenClaw 的多 agent 派发与治理
 
 ---
 
+## 当前版本结论
+
+**当前主线已经升级到 OPC v0.2。**
+
+v0.2 的核心变化：
+- **去 ACP 化**：ACP 不再是核心 runtime 前提
+- **回归 OpenClaw-native**：主执行资源统一为 `main session / subagent / coding-agent`
+- **借鉴 Edict 的制度设计**：角色分层、双 review gate、状态机保护、权限矩阵、可观测台账
+- **补齐 delivery layer**：task 不再只停留在 node 完成，而能聚合到 `delivered`
+
+所以当前推荐理解是：
+
+> **OPC v0.2 = 去 ACP、参考 Edict、但坚持 OpenClaw 原生编排的轻量控制面。**
+
+---
+
 ## 1. OPC 解决什么问题
 
 当任务变复杂时，主会话很容易同时承担：
@@ -38,7 +54,7 @@ OPC 要解决的就是这件事：
 - 让子代理拿到稳定 dispatch payload
 - 让 review gate 变成制度，而不是临时想起
 - 让 resume / recovery 成为默认能力
-- 让 OpenClaw 的 skill、subagent、ACP 落到统一控制模型里
+- 让 OpenClaw 的 skill、subagent、本地 coding agent 落到统一控制模型里
 
 ---
 
@@ -47,16 +63,17 @@ OPC 要解决的就是这件事：
 ### OPC 不是
 
 - 不是新的重型运行时
-- 不是替代 OpenClaw session / subagent / ACP
+- 不是替代 OpenClaw session / subagent
 - 不是把所有任务都强行多 agent 化
 - 不是先做 dashboard 再找场景
+- 不是 ACP bridge
 
 ### OPC 是
 
 - 一套 OpenClaw-native 的任务派发协议
 - 一套多 agent 治理模型
 - 一层位于 skill 之上的控制面
-- 一套让复杂任务可暂停、可恢复、可审计的最小制度
+- 一套让复杂任务可暂停、可恢复、可审计、可交付的最小制度
 
 ---
 
@@ -68,18 +85,18 @@ OPC 要解决的就是这件事：
 - `sessions_spawn`
 - `sessions_send`
 - subagent
-- ACP persistent session
 - workspace 文件系统
 - memory
+- coding-agent skill 驱动的本地编码执行
 
 ### OPC 提供的制度
 
 - task / node / review / event 台账
 - task / node 状态机
-- Router / Planner / Reviewer / Worker 角色边界
+- triage / planner / reviewer / dispatcher / worker / summarizer 角色边界
 - dispatch payload 结构
 - review gate 触发规则
-- resume / recovery 约束
+- resume / recovery / delivery 约束
 
 所以：
 
@@ -94,19 +111,19 @@ User
   ↓
 CEO Session
   ↓
-Router
+Router / Triage
   ↓
 Planner
   ↓
-Plan Gate
+Plan Review Gate
   ↓
 Dispatcher
   ↓
 Workers
   ↓
-Result Gate
+Result Review Gate
   ↓
-Synthesizer / CEO
+Summarizer
   ↓
 Delivery
 ```
@@ -114,13 +131,13 @@ Delivery
 角色含义：
 
 - **CEO Session**：主会话，接需求、拍板、交付
-- **Router**：判断任务类型、匹配 skill、决定是否拆解
+- **Router / Triage**：判断任务类型、匹配 skill、决定是否拆解
 - **Planner**：拆节点、写依赖、定验收标准
-- **Plan Gate**：审核计划是否合理
-- **Dispatcher**：选择主会话 / subagent / ACP 执行策略
+- **Plan Review Gate**：审核计划是否合理
+- **Dispatcher**：选择主会话 / subagent / coding-agent 执行策略
 - **Workers**：完成具体节点
-- **Result Gate**：审核结果、决定返工或放行
-- **Synthesizer**：汇总结果给 CEO 最终交付
+- **Result Review Gate**：审核结果、决定返工或放行
+- **Summarizer**：汇总结果给 CEO 最终交付
 
 ---
 
@@ -142,15 +159,14 @@ Delivery
 - 进入 OPC task 流
 
 ### Type D：持续会话任务
-- 需要 thread-bound / session-bound 持续推进
-- 优先 ACP persistent session
+- 需要 session-bound 持续推进
+- 优先使用 OpenClaw 原生持续 session
+- 如需编码执行，优先挂接 `coding-agent` 作为 worker runtime
 - OPC 只负责上层经营状态，不吞掉长会话语义
 
 ---
 
 ## 6. skill 是入口层，OPC 是经营层
-
-推荐统一口径：
 
 ### skill 层回答的是
 - 这是什么任务？
@@ -160,13 +176,12 @@ Delivery
 ### OPC 层回答的是
 - 要不要拆解？
 - 谁来做？
-- 用主会话、subagent 还是 ACP？
+- 用主会话、subagent 还是 coding-agent？
 - 哪些节点必须过 review gate？
 - 中断后从哪继续？
 - 最终如何交付？
 
 因此：
-
 - `web-access` 决定联网任务怎么做
 - `coding-agent` 决定编码任务怎么委派
 - `social-media-manager` 决定社媒任务怎么路由
@@ -188,140 +203,21 @@ projects/opc/
 
 关键内容：
 
-- `docs/opc-v1-spec.md`：**当前主规范基线**
-- `docs/skill-mapping.md`：OPC 与现有 skill 的接轨方式
-- `scripts/opc.py`：v1 轻控制面 CLI
+- `docs/opc-v0.2-upgrade.md`：v0.2 升级方向
+- `docs/opc-v0.2-control-plane.md`：v0.2 控制面
+- `docs/opc-v0.2-delivery-layer.md`：delivery 聚合层
+- `scripts/opc.py`：当前 CLI 控制面
 - `templates/`：task / node / review / event 模板
 - `tasks/`：运行时任务台账
 
 ---
 
-## 8. 推荐阅读顺序
+## 8. 当前进展
 
-### 主路径（新读者）
-1. `docs/opc-v1-spec.md`
-2. `docs/skill-mapping.md`
-3. `docs/openclaw-orchestration.md`
-4. `docs/workflow-runtime-bridge-matrix.md`
-5. `docs/mvp-usage.md`
-6. `docs/agent-reporting-commands.md`
-7. `scripts/opc.py`
+当前已经跑通：
+- 最小 demo 闭环
+- control plane 闭环
+- research v0.2 两节点样板
+- task delivered 聚合
 
-### 参考路径（旧稿 / 背景说明）
-- `docs/first-real-workflow.md`
-- `docs/real-coding-workflow.md`
-- `docs/real-social-workflow.md`
-- `docs/task-real-research-bind-session-example.md`
-- `docs/task-real-coding-bind-session-example.md`
-- `docs/task-real-social-bind-session-example.md`
-- `docs/runtime-bridge-checklist.md`
-- `docs/opc-architecture.md`
-- `docs/runtime-architecture.md`
-- `docs/protocols.md`
-- 其它早期设计文档
-
-文档关系建议统一为：
-
-- **主规范**：`opc-v1-spec.md`
-- **执行映射**：`skill-mapping.md`、`openclaw-orchestration.md`
-- **控制面说明**：`opc.py` + `mvp-usage.md`
-- **背景参考**：旧 architecture / protocols / vision 系列文档
-
----
-
-## 9. 三条真实 workflow 现状
-
-| Workflow | 当前状态 | 关键产物 |
-|---|---|---|
-| Research | 已闭环 | `docs/first-real-workflow.md`, `tasks/TASK-REAL-RESEARCH/` |
-| Coding | 已闭环 | `docs/real-coding-workflow.md`, `tasks/TASK-REAL-CODING/` |
-| Social | 已闭环并补齐 task 样板 | `docs/real-social-workflow.md`, `tasks/TASK-REAL-SOCIAL/` |
-
-这三条链路共同证明：
-
-- OPC 已能覆盖 research / coding / social 三类不同任务形态
-- 不只是有说明文档，也已有 task / node / review / event / dispatch artifact 样板
-- 下一步重点不再是“证明能不能做”，而是继续补 runtime bridge
-
----
-
-## 10. 当前 v1 控制面能力
-
-`scripts/opc.py` 当前已经覆盖：
-
-- create task
-- update task status
-- create node
-- update node status
-- create review
-- render dispatch payload
-- bind session
-- task summary / brief / report / events
-- task agent status / session health snapshot
-- task / node 状态迁移校验
-- event 写入
-
-这意味着它已经不只是“样例脚本”，而是一个可操作的轻控制面样机。
-
-仍待补强的方向：
-
-- task 摘要视图更适合真实运营
-- review 结果与 task / node 联动更自动化
-- result recording 更结构化
-- resume cursor / recoverability 表达更显式
-- 对 OpenClaw session 操作增加桥接层说明或命令
-
----
-
-## 11. 最小示例
-
-```bash
-python3 scripts/opc.py create-task \
-  --title "Run a real coding workflow" \
-  --goal "Route planning, execution, review, and delivery through OPC"
-
-python3 scripts/opc.py create-node TASK-XXXX \
-  --title "Implement feature" \
-  --role worker-code \
-  --kind execute
-
-python3 scripts/opc.py render-dispatch-payload TASK-XXXX NODE-XXXX
-python3 scripts/opc.py bind-session TASK-XXXX NODE-XXXX sess_xxx --runtime subagent --session-mode session
-python3 scripts/opc.py show-task TASK-XXXX
-```
-
----
-
-## 11. v1 近期推进重点
-
-### P0
-- 明确 `opc-v1-spec.md` 为主规范
-- 收口 README 级总览
-- 补 `skill-mapping.md`
-- 盘点并收口 `scripts/opc.py`
-
-### P1
-- 已跑通 coding workflow
-- 已跑通 social workflow
-- 已跑通 research workflow
-- 明确 review gate 规则
-- 明确 resume / recovery 规则
-
-### P2
-- 整理旧文档层级
-- 评估 dashboard 是否真有必要
-- 评估是否抽成独立 skill / 独立仓库
-
----
-
-## 12. 当前结论
-
-OPC 当前最优路线不是推倒重建。
-
-应该做的是：
-
-1. 以 `opc-v1-spec.md` 作为主规范收口
-2. 统一口径为“skill 是入口层，OPC 是经营层”
-3. 用 `opc.py` 先把轻控制面跑稳
-4. 再接真实 coding / social / research 工作流
-5. 最后再决定是否产品化、可视化、独立化
+也就是说，OPC 当前已经不是概念文档，而是有真实 ledger 和控制面命令支撑的可运行原型。
