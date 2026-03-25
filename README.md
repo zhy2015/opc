@@ -51,6 +51,9 @@ OPC 是一套面向 OpenClaw 的多 Agent 管理架构草案。
 - `docs/state-validation.md`：task / node 状态合法迁移规则
 - `docs/openclaw-orchestration.md`：接入真实 OpenClaw session 的桥接设计
 - `docs/context-packaging.md`：CEO 向子 agent 配给上下文的打包规范
+- `docs/operating-rules.md`：独立会话 / 禁止套娃 / 并发上限 / 自动通告
+- `docs/session-governance.md`：会话治理与 CEO 独占调度权
+- `docs/first-real-workflow.md`：第一条真实 orchestration 工作流
 
 最小演示：
 
