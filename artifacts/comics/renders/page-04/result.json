@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "model": "seedream",
+  "module": "hidream-M",
+  "version": "M1",
+  "task_id": "d9c27995-fc35-481b-8bcf-bf215b0bae50",
+  "status": "completed",
+  "artifacts": [
+    {
+      "task_status": 1,
+      "url": null,
+      "cover_url": null,
+      "raw": {
+        "image": "https://storage.vivago.ai/image/j_bc44fcfd-158b-4d44-9e46-6ff81b6626b4.jpg",
+        "sub_task_id": "86984850-c6da-461a-8e07-43b5fb67110f",
+        "task_status": 1
+      }
+    }
+  ],
+  "raw": {
+    "code": 0,
+    "message": "Success",
+    "request_id": "c40cc6fc-2800-11f1-ad33-4a362334be96",
+    "result": {
+      "sub_task_results": [
+        {
+          "image": "https://storage.vivago.ai/image/j_bc44fcfd-158b-4d44-9e46-6ff81b6626b4.jpg",
+          "sub_task_id": "86984850-c6da-461a-8e07-43b5fb67110f",
+          "task_status": 1
+        }
+      ],
+      "task_id": "d9c27995-fc35-481b-8bcf-bf215b0bae50"
+    }
+  }
+}
