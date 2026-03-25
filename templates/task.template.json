@@ -1,0 +1,29 @@
+{
+  "task_id": "TASK-001",
+  "title": "Sample task title",
+  "goal": "Describe the business goal of the task",
+  "status": "new",
+  "priority": "medium",
+  "owner": "ceo-session",
+  "acceptance_criteria": [],
+  "constraints": [],
+  "context_refs": [],
+  "tags": [],
+  "budget": {
+    "max_parallel": 2,
+    "preferred_models": ["default"],
+    "token_budget": 100000,
+    "cost_budget_usd": 5
+  },
+  "resume_cursor": {
+    "completed_nodes": [],
+    "next_nodes": [],
+    "stable_artifacts": []
+  },
+  "delivery": {
+    "channel": "main-session",
+    "format": "markdown"
+  },
+  "created_at": "",
+  "updated_at": ""
+}

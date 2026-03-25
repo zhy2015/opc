@@ -1,0 +1,12 @@
+{
+  "event_id": "EVT-001",
+  "task_id": "TASK-001",
+  "node_id": null,
+  "type": "task_created",
+  "actor": {
+    "role": "ceo-session",
+    "session": null
+  },
+  "payload": {},
+  "timestamp": ""
+}

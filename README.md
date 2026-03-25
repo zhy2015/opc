@@ -41,3 +41,18 @@ OPC 是一套面向 OpenClaw 的多 Agent 管理架构草案。
 ## 一句话定义
 
 > OPC = 把主会话当 CEO，把子 Agent 当部门，把任务流当经营流程，把状态与记忆当公司的操作系统。
+
+## MVP 骨架已包含
+
+- `templates/`：task / node / review / event 模板
+- `scripts/opc.py`：最小控制面 CLI
+- `tasks/`：运行时任务台账目录
+- `docs/mvp-usage.md`：最小使用说明
+
+最小演示：
+
+```bash
+python3 scripts/opc.py create-task \
+  --title "Design OPC runtime MVP" \
+  --goal "Build a minimal runnable control loop for OPC"
+```

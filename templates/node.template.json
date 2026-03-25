@@ -1,0 +1,21 @@
+{
+  "node_id": "NODE-001",
+  "task_id": "TASK-001",
+  "kind": "execute",
+  "title": "Sample node title",
+  "assigned_role": "worker-code",
+  "assigned_session": null,
+  "status": "queued",
+  "depends_on": [],
+  "input_refs": [],
+  "output_refs": [],
+  "instructions": "",
+  "acceptance_criteria": [],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "",
+  "updated_at": ""
+}

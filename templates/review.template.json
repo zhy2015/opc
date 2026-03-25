@@ -1,0 +1,15 @@
+{
+  "review_id": "REV-001",
+  "task_id": "TASK-001",
+  "target_node_id": "NODE-001",
+  "reviewer_role": "reviewer",
+  "reviewer_session": null,
+  "stage": "plan_gate",
+  "decision": "approve",
+  "reasons": [],
+  "required_changes": [],
+  "severity": "low",
+  "score": 1.0,
+  "notes": "",
+  "created_at": ""
+}
