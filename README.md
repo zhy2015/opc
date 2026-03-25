@@ -72,5 +72,8 @@ python3 scripts/opc.py create-task \
 - `artifacts/comics/opc-architecture-prompts.md`：漫画出图 prompt 草案
 - `artifacts/comics/opc-architecture-page-prompts.md`：分页 prompt 包
 - `artifacts/comics/DELIVERY.md`：完整漫画交付包说明
+- `artifacts/comics/opc-architecture-image-production-pack.md`：真出图执行包
+- `artifacts/comics/render-checklist.md`：首轮出图检查清单
 - `docs/final-comic-delivery-status.md`：当前已完成到“制作素材层”的状态说明
+- `docs/final-comic-package-summary.md`：完整结果包摘要
 - `docs/next-step-comic-production.md`：从脚本推进到真出图的建议路径
