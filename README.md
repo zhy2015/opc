@@ -68,5 +68,9 @@ python3 scripts/opc.py create-task \
 - `docs/multi-agent-demo-comic-run.md`：一次真实的 CEO → planner → reviewer → writer 多 agent 演练记录
 - `artifacts/comics/opc-architecture-comic-script.md`：用该链路产出的 OPC 架构知识漫画脚本
 - `artifacts/comics/opc-architecture-storyboard-table.md`：可直接交画师的分镜表
+- `artifacts/comics/opc-architecture-character-bible.md`：角色与场景锚点包
 - `artifacts/comics/opc-architecture-prompts.md`：漫画出图 prompt 草案
+- `artifacts/comics/opc-architecture-page-prompts.md`：分页 prompt 包
+- `artifacts/comics/DELIVERY.md`：完整漫画交付包说明
+- `docs/final-comic-delivery-status.md`：当前已完成到“制作素材层”的状态说明
 - `docs/next-step-comic-production.md`：从脚本推进到真出图的建议路径
