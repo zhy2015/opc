@@ -49,6 +49,8 @@ OPC 是一套面向 OpenClaw 的多 Agent 管理架构草案。
 - `tasks/`：运行时任务台账目录
 - `docs/mvp-usage.md`：最小使用说明
 - `docs/state-validation.md`：task / node 状态合法迁移规则
+- `docs/openclaw-orchestration.md`：接入真实 OpenClaw session 的桥接设计
+- `docs/context-packaging.md`：CEO 向子 agent 配给上下文的打包规范
 
 最小演示：
 

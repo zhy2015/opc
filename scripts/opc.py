@@ -106,6 +106,13 @@ def load_task(task_id: str):
     return load_json(path), path
 
 
+def load_node(task_id: str, node_id: str):
+    path = TASKS_DIR / task_id / "nodes" / (node_id + ".json")
+    if not path.exists():
+        raise SystemExit("Node not found: {}".format(node_id))
+    return load_json(path), path
+
+
 def create_task(args):
     task = load_json(TEMPLATES_DIR / "task.template.json")
     task_id = args.task_id or next_id("TASK")
@@ -149,17 +156,21 @@ def create_node(args):
         "kind": args.kind,
         "title": args.title,
         "assigned_role": args.role,
+        "assigned_session": None,
+        "spawned_by": None,
+        "runtime": None,
+        "session_mode": None,
+        "dispatch_payload_ref": None,
         "status": args.status,
         "depends_on": args.depends_on or [],
         "instructions": args.instructions or "",
         "created_at": ts,
         "updated_at": ts,
     })
-    save_json(TASKS_DIR / args.task_id / "nodes" / (node_id + ".json"), node)
-    append_event(args.task_id, node_id, "node_dispatched", args.actor, {"role": args.role, "kind": args.kind})
     if args.acceptance:
         node["acceptance_criteria"] = args.acceptance
-        save_json(TASKS_DIR / args.task_id / "nodes" / (node_id + ".json"), node)
+    save_json(TASKS_DIR / args.task_id / "nodes" / (node_id + ".json"), node)
+    append_event(args.task_id, node_id, "node_dispatched", args.actor, {"role": args.role, "kind": args.kind})
     if task["status"] == "plan_review":
         task["status"] = "dispatched"
         task["updated_at"] = now_iso()
@@ -168,10 +179,7 @@ def create_node(args):
 
 
 def update_node_status(args):
-    path = TASKS_DIR / args.task_id / "nodes" / (args.node_id + ".json")
-    if not path.exists():
-        raise SystemExit("Node not found: {}".format(args.node_id))
-    node = load_json(path)
+    node, path = load_node(args.task_id, args.node_id)
     old = node["status"]
     assert_transition(old, args.status, VALID_NODE_TRANSITIONS, "node")
     node["status"] = args.status
@@ -212,6 +220,65 @@ def create_review(args):
     event_type = "review_passed" if args.decision == "approve" else "review_failed"
     append_event(args.task_id, args.node_id, event_type, args.reviewer_role, {"stage": args.stage, "decision": args.decision})
     print(review_id)
+
+
+def render_dispatch_payload(args):
+    task, _ = load_task(args.task_id)
+    node, node_path = load_node(args.task_id, args.node_id)
+    payload = {
+        "task_id": args.task_id,
+        "node_id": args.node_id,
+        "role": node.get("assigned_role"),
+        "mission_context": {
+            "task_title": task.get("title"),
+            "goal": task.get("goal"),
+            "priority": task.get("priority"),
+            "node_title": node.get("title"),
+            "acceptance_criteria": node.get("acceptance_criteria", []),
+        },
+        "working_context": {
+            "task_context_refs": task.get("context_refs", []),
+            "input_refs": node.get("input_refs", []),
+            "depends_on": node.get("depends_on", []),
+            "instructions": node.get("instructions", ""),
+        },
+        "policy_context": {
+            "role_boundary": "Only complete the assigned node.",
+            "must_not": [
+                "Do not change task scope.",
+                "Do not bypass review gates.",
+                "Do not mark unrelated nodes complete."
+            ]
+        },
+        "output_contract": {
+            "review_required": node.get("review_required", True),
+            "expected_output_refs": node.get("output_refs", []),
+            "artifact_dir": "tasks/{}/artifacts".format(args.task_id)
+        }
+    }
+    artifact_path = TASKS_DIR / args.task_id / "artifacts" / (args.node_id + "-dispatch.json")
+    save_json(artifact_path, payload)
+    node["dispatch_payload_ref"] = str(artifact_path.relative_to(ROOT))
+    node["updated_at"] = now_iso()
+    save_json(node_path, node)
+    append_event(args.task_id, args.node_id, "task_updated", args.actor, {"dispatch_payload_ref": node["dispatch_payload_ref"]})
+    print(node["dispatch_payload_ref"])
+
+
+def bind_session(args):
+    node, path = load_node(args.task_id, args.node_id)
+    node["assigned_session"] = args.session_key
+    node["spawned_by"] = args.actor
+    node["runtime"] = args.runtime
+    node["session_mode"] = args.session_mode
+    node["updated_at"] = now_iso()
+    save_json(path, node)
+    append_event(args.task_id, args.node_id, "task_updated", args.actor, {
+        "assigned_session": args.session_key,
+        "runtime": args.runtime,
+        "session_mode": args.session_mode,
+    })
+    print("{} bound to {}".format(args.node_id, args.session_key))
 
 
 def show_task(args):
@@ -278,6 +345,21 @@ def main():
     p.add_argument("--required-changes", nargs="*")
     p.add_argument("--notes")
     p.set_defaults(func=create_review)
+
+    p = sub.add_parser("render-dispatch-payload")
+    p.add_argument("task_id")
+    p.add_argument("node_id")
+    p.add_argument("--actor", default="ceo-session")
+    p.set_defaults(func=render_dispatch_payload)
+
+    p = sub.add_parser("bind-session")
+    p.add_argument("task_id")
+    p.add_argument("node_id")
+    p.add_argument("session_key")
+    p.add_argument("--runtime", default="subagent")
+    p.add_argument("--session-mode", default="session")
+    p.add_argument("--actor", default="ceo-session")
+    p.set_defaults(func=bind_session)
 
     p = sub.add_parser("show-task")
     p.add_argument("task_id")
