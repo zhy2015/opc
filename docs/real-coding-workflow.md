@@ -177,8 +177,8 @@
 ## 下一步建议
 
 ### P1
-- 继续补一条 social workflow
-- 让 research / coding / social 三条真实链路并列成立
+- research / coding / social 三条真实链路已并列成立
+- 下一步从“补第三条”转向“补 task ledger / dispatch / runtime bridge”
 
 ### P2
 - 给 coding workflow 补带 `bind-session` 的 runtime 版
@@ -191,4 +191,4 @@
 
 `TASK-REAL-CODING` 已完成并交付。
 
-它证明 OPC 当前控制面已经足以管理一条真实代码改动链路；接下来最关键的是把 social workflow 跑通，完成“三条真实工作流”的收口。
+它证明 OPC 当前控制面已经足以管理一条真实代码改动链路；现在 research / coding / social 三条真实工作流都已成立，下一步重点是补 task ledger、dispatch artifact 与 runtime 化桥接。

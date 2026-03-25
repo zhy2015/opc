@@ -1,0 +1,43 @@
+{
+  "task_id": "TASK-REAL-SOCIAL",
+  "node_id": "NODE-DELIVER-001",
+  "role": "synthesizer",
+  "mission_context": {
+    "task_title": "Run a real social workflow",
+    "goal": "Use OPC to route planning, real platform operation, review, and delivery through a resumable social task flow",
+    "priority": "medium",
+    "node_title": "Prepare social delivery summary",
+    "acceptance_criteria": [
+      "Produces stable delivery summary"
+    ]
+  },
+  "working_context": {
+    "task_context_refs": [
+      "docs/real-social-workflow.md"
+    ],
+    "input_refs": [
+      "skills/social-media-manager/SKILL.md",
+      "skills/social-media-xiaohongshu/SKILL.md",
+      "skills/social-media-douyin/SKILL.md"
+    ],
+    "depends_on": [
+      "NODE-REVIEW-001"
+    ],
+    "instructions": "Produce a concise delivery summary covering the reusable workflow assets, review gate, and why this closes the third real workflow lane."
+  },
+  "policy_context": {
+    "role_boundary": "Only complete the assigned delivery node.",
+    "must_not": [
+      "Do not expand scope beyond the social workflow deliverable.",
+      "Do not mark unrelated nodes complete.",
+      "Do not drop review-gate context from the final summary."
+    ]
+  },
+  "output_contract": {
+    "review_required": false,
+    "expected_output_refs": [
+      "tasks/TASK-REAL-SOCIAL/artifacts/delivery-summary.md"
+    ],
+    "artifact_dir": "tasks/TASK-REAL-SOCIAL/artifacts"
+  }
+}

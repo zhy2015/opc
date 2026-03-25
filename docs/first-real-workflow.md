@@ -189,9 +189,9 @@
 ## 下一步建议
 
 ### P1
-- 补一条同等粒度的 coding workflow
-- 补一条同等粒度的 social workflow
-- 把 TODO 中“三条真实工作流跑通”从 research 扩到全套
+- coding workflow 已补齐
+- social workflow 已补齐
+- “三条真实工作流跑通”已成立
 
 ### P2
 - 给 research / coding / social 都补带 `bind-session` 的 runtime 版本

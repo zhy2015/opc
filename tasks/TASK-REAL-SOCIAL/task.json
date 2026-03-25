@@ -1,0 +1,57 @@
+{
+  "task_id": "TASK-REAL-SOCIAL",
+  "title": "Run a real social workflow",
+  "goal": "Use OPC to route planning, real platform operation, review, and delivery through a resumable social task flow",
+  "status": "delivered",
+  "priority": "medium",
+  "owner": "ceo-session",
+  "acceptance_criteria": [
+    "Has planner/operator/review/delivery nodes",
+    "Has dispatch payloads",
+    "Has real platform success criteria and review-gated delivery"
+  ],
+  "constraints": [
+    "Must use real browser/page paths rather than guessed APIs for write actions",
+    "Must verify post-action results on the target platform"
+  ],
+  "context_refs": [
+    "skills/social-media-manager/SKILL.md",
+    "skills/social-media-xiaohongshu/SKILL.md",
+    "skills/social-media-douyin/SKILL.md"
+  ],
+  "tags": [
+    "social",
+    "browser",
+    "external-write"
+  ],
+  "budget": {
+    "max_parallel": 2,
+    "preferred_models": [
+      "default"
+    ],
+    "token_budget": 100000,
+    "cost_budget_usd": 5
+  },
+  "resume_cursor": {
+    "completed_nodes": [
+      "NODE-DELIVER-001",
+      "NODE-OPERATE-001",
+      "NODE-PLAN-001",
+      "NODE-REVIEW-001"
+    ],
+    "next_nodes": [],
+    "stable_artifacts": [
+      "docs/real-social-workflow.md",
+      "skills/social-media-manager/SKILL.md",
+      "skills/social-media-xiaohongshu/SKILL.md",
+      "skills/social-media-douyin/SKILL.md",
+      "tasks/TASK-REAL-SOCIAL/artifacts/delivery-summary.md"
+    ]
+  },
+  "delivery": {
+    "channel": "main-session",
+    "format": "markdown"
+  },
+  "created_at": "2026-03-25T09:06:00Z",
+  "updated_at": "2026-03-25T09:06:45Z"
+}

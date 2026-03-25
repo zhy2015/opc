@@ -1,0 +1,37 @@
+{
+  "node_id": "NODE-DELIVER-001",
+  "task_id": "TASK-REAL-SOCIAL",
+  "kind": "deliver",
+  "title": "Prepare social delivery summary",
+  "assigned_role": "synthesizer",
+  "assigned_session": null,
+  "status": "done",
+  "depends_on": [
+    "NODE-REVIEW-001"
+  ],
+  "input_refs": [
+    "docs/real-social-workflow.md",
+    "skills/social-media-manager/SKILL.md",
+    "skills/social-media-xiaohongshu/SKILL.md",
+    "skills/social-media-douyin/SKILL.md"
+  ],
+  "output_refs": [
+    "tasks/TASK-REAL-SOCIAL/artifacts/delivery-summary.md"
+  ],
+  "instructions": "Summarize the reusable platform workflow assets, review gate, and why this closes the third real workflow lane.",
+  "acceptance_criteria": [
+    "Produces stable delivery summary"
+  ],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": false,
+  "estimated_effort": "small",
+  "created_at": "2026-03-25T09:06:04Z",
+  "updated_at": "2026-03-25T09:06:45Z",
+  "spawned_by": null,
+  "runtime": null,
+  "session_mode": null,
+  "dispatch_payload_ref": "tasks/TASK-REAL-SOCIAL/artifacts/NODE-DELIVER-001-dispatch.json",
+  "result_summary": "Prepared social delivery summary for the third real workflow lane."
+}

@@ -1,0 +1,45 @@
+{
+  "task_id": "TASK-REAL-SOCIAL",
+  "node_id": "NODE-OPERATE-001",
+  "role": "operator-social",
+  "mission_context": {
+    "task_title": "Run a real social workflow",
+    "goal": "Use OPC to route planning, real platform operation, review, and delivery through a resumable social task flow",
+    "priority": "medium",
+    "node_title": "Execute real social platform action",
+    "acceptance_criteria": [
+      "Uses a real page path",
+      "Has post-action verification",
+      "Records platform-specific success criteria"
+    ]
+  },
+  "working_context": {
+    "task_context_refs": [
+      "skills/social-media-manager/SKILL.md"
+    ],
+    "input_refs": [
+      "skills/social-media-xiaohongshu/SKILL.md",
+      "skills/social-media-douyin/SKILL.md"
+    ],
+    "depends_on": [
+      "NODE-PLAN-001"
+    ],
+    "instructions": "Operate only within the assigned social node. Prefer real browser/page paths. For write actions, require platform-side success evidence and preserve reusable workflow details only."
+  },
+  "policy_context": {
+    "role_boundary": "Only complete the assigned node.",
+    "must_not": [
+      "Do not invent API write paths when real page flows are required.",
+      "Do not treat a clicked button as final success without platform verification.",
+      "Do not expand scope to unrelated platforms or unrelated nodes."
+    ]
+  },
+  "output_contract": {
+    "review_required": true,
+    "expected_output_refs": [
+      "skills/social-media-xiaohongshu/SKILL.md",
+      "skills/social-media-douyin/SKILL.md"
+    ],
+    "artifact_dir": "tasks/TASK-REAL-SOCIAL/artifacts"
+  }
+}

@@ -202,10 +202,19 @@ projects/opc/
 1. `docs/opc-v1-spec.md`
 2. `docs/skill-mapping.md`
 3. `docs/openclaw-orchestration.md`
-4. `docs/mvp-usage.md`
-5. `scripts/opc.py`
+4. `docs/workflow-runtime-bridge-matrix.md`
+5. `docs/mvp-usage.md`
+6. `docs/agent-reporting-commands.md`
+7. `scripts/opc.py`
 
 ### 参考路径（旧稿 / 背景说明）
+- `docs/first-real-workflow.md`
+- `docs/real-coding-workflow.md`
+- `docs/real-social-workflow.md`
+- `docs/task-real-research-bind-session-example.md`
+- `docs/task-real-coding-bind-session-example.md`
+- `docs/task-real-social-bind-session-example.md`
+- `docs/runtime-bridge-checklist.md`
 - `docs/opc-architecture.md`
 - `docs/runtime-architecture.md`
 - `docs/protocols.md`
@@ -220,7 +229,23 @@ projects/opc/
 
 ---
 
-## 9. 当前 v1 控制面能力
+## 9. 三条真实 workflow 现状
+
+| Workflow | 当前状态 | 关键产物 |
+|---|---|---|
+| Research | 已闭环 | `docs/first-real-workflow.md`, `tasks/TASK-REAL-RESEARCH/` |
+| Coding | 已闭环 | `docs/real-coding-workflow.md`, `tasks/TASK-REAL-CODING/` |
+| Social | 已闭环并补齐 task 样板 | `docs/real-social-workflow.md`, `tasks/TASK-REAL-SOCIAL/` |
+
+这三条链路共同证明：
+
+- OPC 已能覆盖 research / coding / social 三类不同任务形态
+- 不只是有说明文档，也已有 task / node / review / event / dispatch artifact 样板
+- 下一步重点不再是“证明能不能做”，而是继续补 runtime bridge
+
+---
+
+## 10. 当前 v1 控制面能力
 
 `scripts/opc.py` 当前已经覆盖：
 
@@ -231,7 +256,8 @@ projects/opc/
 - create review
 - render dispatch payload
 - bind session
-- show task summary
+- task summary / brief / report / events
+- task agent status / session health snapshot
 - task / node 状态迁移校验
 - event 写入
 
@@ -247,7 +273,7 @@ projects/opc/
 
 ---
 
-## 10. 最小示例
+## 11. 最小示例
 
 ```bash
 python3 scripts/opc.py create-task \
@@ -275,9 +301,9 @@ python3 scripts/opc.py show-task TASK-XXXX
 - 盘点并收口 `scripts/opc.py`
 
 ### P1
-- 跑通 coding workflow
-- 跑通 social workflow
-- 跑通 research workflow
+- 已跑通 coding workflow
+- 已跑通 social workflow
+- 已跑通 research workflow
 - 明确 review gate 规则
 - 明确 resume / recovery 规则
 

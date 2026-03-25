@@ -1,0 +1,36 @@
+{
+  "node_id": "NODE-REVIEW-001",
+  "task_id": "TASK-REAL-SOCIAL",
+  "kind": "review",
+  "title": "Review social operation result",
+  "assigned_role": "reviewer",
+  "assigned_session": null,
+  "status": "done",
+  "depends_on": [
+    "NODE-OPERATE-001"
+  ],
+  "input_refs": [
+    "skills/social-media-xiaohongshu/SKILL.md",
+    "skills/social-media-douyin/SKILL.md"
+  ],
+  "output_refs": [
+    "docs/real-social-workflow.md"
+  ],
+  "instructions": "Check that the workflow records real platform-side success criteria rather than button-click pseudo-success.",
+  "acceptance_criteria": [
+    "Checks post-action verification",
+    "Checks platform result criteria"
+  ],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": false,
+  "estimated_effort": "small",
+  "created_at": "2026-03-25T09:06:03Z",
+  "updated_at": "2026-03-25T09:06:38Z",
+  "spawned_by": null,
+  "runtime": null,
+  "session_mode": null,
+  "dispatch_payload_ref": "tasks/TASK-REAL-SOCIAL/artifacts/NODE-REVIEW-001-dispatch.json",
+  "result_summary": "Reviewer confirmed social workflow uses real result gates and post-action verification."
+}

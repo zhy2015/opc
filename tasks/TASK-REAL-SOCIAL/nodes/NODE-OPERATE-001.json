@@ -1,0 +1,38 @@
+{
+  "node_id": "NODE-OPERATE-001",
+  "task_id": "TASK-REAL-SOCIAL",
+  "kind": "execute",
+  "title": "Execute real social platform action",
+  "assigned_role": "operator-social",
+  "assigned_session": null,
+  "status": "done",
+  "depends_on": [
+    "NODE-PLAN-001"
+  ],
+  "input_refs": [
+    "skills/social-media-xiaohongshu/SKILL.md",
+    "skills/social-media-douyin/SKILL.md"
+  ],
+  "output_refs": [
+    "skills/social-media-xiaohongshu/SKILL.md",
+    "skills/social-media-douyin/SKILL.md"
+  ],
+  "instructions": "Execute a real platform-side write operation and preserve only validated workflow details and success criteria.",
+  "acceptance_criteria": [
+    "Uses a real page path",
+    "Has post-action verification",
+    "Records platform-specific success criteria"
+  ],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": true,
+  "estimated_effort": "medium",
+  "created_at": "2026-03-25T09:06:02Z",
+  "updated_at": "2026-03-25T09:06:30Z",
+  "spawned_by": null,
+  "runtime": null,
+  "session_mode": null,
+  "dispatch_payload_ref": "tasks/TASK-REAL-SOCIAL/artifacts/NODE-OPERATE-001-dispatch.json",
+  "result_summary": "Validated real social platform write paths and success criteria for Xiaohongshu and Douyin workflows."
+}

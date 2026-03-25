@@ -1,0 +1,43 @@
+{
+  "task_id": "TASK-REAL-SOCIAL",
+  "node_id": "NODE-REVIEW-001",
+  "role": "reviewer",
+  "mission_context": {
+    "task_title": "Run a real social workflow",
+    "goal": "Use OPC to route planning, real platform operation, review, and delivery through a resumable social task flow",
+    "priority": "medium",
+    "node_title": "Review social operation result",
+    "acceptance_criteria": [
+      "Checks post-action verification",
+      "Checks platform result criteria"
+    ]
+  },
+  "working_context": {
+    "task_context_refs": [
+      "docs/real-social-workflow.md"
+    ],
+    "input_refs": [
+      "skills/social-media-xiaohongshu/SKILL.md",
+      "skills/social-media-douyin/SKILL.md"
+    ],
+    "depends_on": [
+      "NODE-OPERATE-001"
+    ],
+    "instructions": "Review whether the social workflow records real success criteria, post-action verification, and platform-specific constraints rather than pseudo-success."
+  },
+  "policy_context": {
+    "role_boundary": "Only review the assigned node result.",
+    "must_not": [
+      "Do not approve based on intent alone.",
+      "Do not bypass result gates for external write actions.",
+      "Do not rewrite unrelated workflow scope."
+    ]
+  },
+  "output_contract": {
+    "review_required": false,
+    "expected_output_refs": [
+      "docs/real-social-workflow.md"
+    ],
+    "artifact_dir": "tasks/TASK-REAL-SOCIAL/artifacts"
+  }
+}

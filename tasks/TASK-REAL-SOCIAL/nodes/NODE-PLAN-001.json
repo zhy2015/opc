@@ -1,0 +1,30 @@
+{
+  "node_id": "NODE-PLAN-001",
+  "task_id": "TASK-REAL-SOCIAL",
+  "kind": "plan",
+  "title": "Plan social workflow",
+  "assigned_role": "planner",
+  "assigned_session": null,
+  "status": "done",
+  "depends_on": [],
+  "input_refs": [],
+  "output_refs": [
+    "docs/real-social-workflow.md"
+  ],
+  "instructions": "Define platform action chain, success criteria, review gate, and delivery artifact scope.",
+  "acceptance_criteria": [
+    "Defines platform/action/review structure"
+  ],
+  "retry_count": 0,
+  "max_retries": 2,
+  "last_error": null,
+  "review_required": false,
+  "estimated_effort": "small",
+  "created_at": "2026-03-25T09:06:01Z",
+  "updated_at": "2026-03-25T09:06:10Z",
+  "spawned_by": null,
+  "runtime": null,
+  "session_mode": null,
+  "dispatch_payload_ref": null,
+  "result_summary": "Planner defined social workflow sequence: plan -> operate -> review -> deliver."
+}

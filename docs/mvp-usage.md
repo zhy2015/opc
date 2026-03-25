@@ -115,23 +115,94 @@ python3 scripts/opc.py task-summary TASK-AB12CD34
 
 摘要会包含：
 - task 当前状态
+- 当前阶段与完成度
 - 各 node 状态计数
 - `resume_cursor`
 - review 数量
 - event 数量
+- 最近关键事件
 - 每个 node 的最小运营视图
 
 ---
 
-## 10. 查看任务全貌
+## 10. 查看简版汇报
 
 ```bash
-python3 scripts/opc.py show-task TASK-AB12CD34
+python3 scripts/opc.py task-brief TASK-AB12CD34
 ```
+
+适合聊天内快速问：
+- 现在任务到哪了
+- 哪些 node 在活跃
+- 最近发生了什么
 
 ---
 
-## 目录结果
+## 11. 查看详细汇报
+
+```bash
+python3 scripts/opc.py task-report TASK-AB12CD34
+```
+
+详细汇报会包含：
+- 总览
+- 节点进展
+- 当前活跃 agent / session
+- 最近关键事件
+- `resume_cursor`
+- CEO 建议
+
+---
+
+## 12. 查看事件尾部
+
+```bash
+python3 scripts/opc.py task-events TASK-AB12CD34 --tail 10 --key-only
+```
+
+适合排查：
+- 最近 10 条关键事件
+- 是否进入 review gate
+- 是否 result 已回写
+
+---
+
+## 13. 查看 agent / session 健康
+
+```bash
+python3 scripts/opc.py task-agent-status TASK-AB12CD34 --sessions-file tmp-sessions.json
+python3 scripts/opc.py task-report TASK-AB12CD34 --with-agents --sessions-file tmp-sessions.json
+```
+
+适合回答：
+- 哪个 agent 真在推进
+- 哪个 session stale / idle / done
+- 哪个 node 需要 intervention
+
+---
+
+## 14. runtime bridge 最小口径
+
+当 node 不再只停留在文件台账，而要进入真实 OpenClaw session 时，推荐最小桥接方式如下：
+
+```bash
+python3 scripts/opc.py render-dispatch-payload TASK-AB12CD34 NODE-XXXX
+python3 scripts/opc.py bind-session TASK-AB12CD34 NODE-XXXX sess_xxx --runtime subagent --session-mode session
+```
+
+然后由 CEO：
+- 使用 `sessions_spawn` 创建目标 session
+- 使用 `sessions_send` 把 dispatch payload 下发给该 session
+- 等结果返回后，用 `record-result` / `create-review` / `update-node-status` 回写台账
+
+这意味着：
+- `opc.py` 先负责 **台账与协议**
+- OpenClaw session runtime 负责 **真实执行**
+- `bind-session` 负责把 node 与真实执行会话绑定起来
+
+---
+
+## 11. 目录结果
 
 运行后会形成：
 

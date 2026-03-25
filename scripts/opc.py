@@ -42,9 +42,37 @@ VALID_NODE_TRANSITIONS = {
     "cancelled": set(),
 }
 
+KEY_EVENT_TYPES = {
+    "node_started",
+    "result_recorded",
+    "review_requested",
+    "review_passed",
+    "review_failed",
+    "node_blocked",
+    "node_completed",
+    "node_failed",
+    "node_skipped",
+    "task_created",
+    "task_updated",
+}
+
 
 def now_iso():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def parse_iso(ts: Optional[str]):
+    if not ts:
+        return None
+    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+
+
+def minutes_since(ts: Optional[str]):
+    dt = parse_iso(ts)
+    if not dt:
+        return None
+    delta = datetime.now(timezone.utc) - dt
+    return round(delta.total_seconds() / 60, 1)
 
 
 def load_json(path: Path):
@@ -111,6 +139,119 @@ def load_node(task_id: str, node_id: str):
     if not path.exists():
         raise SystemExit("Node not found: {}".format(node_id))
     return load_json(path), path
+
+
+def load_events(task_id: str):
+    events_path = TASKS_DIR / task_id / "events.jsonl"
+    events = []
+    if not events_path.exists():
+        return events
+    with events_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            events.append(json.loads(line))
+    return events
+
+
+def compute_task_progress(nodes):
+    if not nodes:
+        return 0
+    done_like = sum(1 for n in nodes if n.get("status") in {"done", "skipped"})
+    return round((done_like / len(nodes)) * 100)
+
+
+def derive_stage(task, nodes):
+    task_status = task.get("status")
+    if task_status in {"delivered", "archived"}:
+        return "delivered"
+    if any(n.get("status") == "review_pending" for n in nodes):
+        return "awaiting_result_review"
+    if any(n.get("status") == "running" for n in nodes):
+        return "execution_in_progress"
+    if any(n.get("status") == "blocked" for n in nodes):
+        return "blocked"
+    if any(n.get("status") == "queued" for n in nodes):
+        return "dispatch_ready"
+    return task_status or "unknown"
+
+
+def recent_key_events(events, limit):
+    filtered = [e for e in events if e.get("type") in KEY_EVENT_TYPES]
+    return filtered[-limit:]
+
+
+def load_runtime_sessions_map(args):
+    sessions = []
+    if not args.sessions_file:
+        return {}
+    sessions_path = Path(args.sessions_file)
+    if not sessions_path.exists():
+        return {}
+    with sessions_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    sessions = data.get("sessions", []) if isinstance(data, dict) else data
+    session_map = {}
+    for sess in sessions:
+        key = sess.get("key") or sess.get("sessionKey")
+        if key:
+            session_map[key] = sess
+    return session_map
+
+
+def derive_session_health(node, runtime_session, stale_after_minutes):
+    node_status = node.get("status")
+    node_age = minutes_since(node.get("updated_at"))
+    runtime_age = minutes_since(runtime_session.get("updatedAt")) if runtime_session else None
+
+    if node_status in {"done", "skipped", "cancelled"}:
+        return "done"
+    if node_status == "blocked":
+        return "blocked"
+    if runtime_session is None and node.get("assigned_session"):
+        return "unresolved"
+    if runtime_session is None:
+        if node_status in {"assigned", "running", "review_pending"}:
+            return "idle"
+        return "unbound"
+
+    recent_min = None
+    ages = [a for a in [node_age, runtime_age] if a is not None]
+    if ages:
+        recent_min = min(ages)
+    if recent_min is not None and recent_min > stale_after_minutes and node_status not in {"done", "skipped", "cancelled"}:
+        return "stale"
+    if node_status in {"running", "review_pending"}:
+        return "active"
+    if node_status == "assigned":
+        return "idle"
+    return runtime_session.get("status", "unknown")
+
+
+def build_agent_rows(nodes, args):
+    session_map = load_runtime_sessions_map(args)
+    rows = []
+    for node in nodes:
+        assigned_session = node.get("assigned_session")
+        runtime_session = session_map.get(assigned_session, {}) if assigned_session else {}
+        health = derive_session_health(node, runtime_session, args.stale_after_minutes)
+        rows.append({
+            "session_key": assigned_session,
+            "node_id": node.get("node_id"),
+            "role": node.get("assigned_role"),
+            "node_status": node.get("status"),
+            "runtime": node.get("runtime"),
+            "session_mode": node.get("session_mode"),
+            "last_ledger_update": node.get("updated_at"),
+            "ledger_age_min": minutes_since(node.get("updated_at")),
+            "runtime_status": runtime_session.get("status") if runtime_session else None,
+            "runtime_updated_at": runtime_session.get("updatedAt") if runtime_session else None,
+            "runtime_age_min": minutes_since(runtime_session.get("updatedAt")) if runtime_session else None,
+            "result_summary": node.get("result_summary"),
+            "health": health,
+        })
+    return rows
 
 
 def sync_resume_cursor(task_id: str):
@@ -377,12 +518,7 @@ def task_summary(args):
     task_dir = TASKS_DIR / args.task_id
     nodes = [load_json(p) for p in sorted((task_dir / "nodes").glob("*.json"))]
     reviews = [load_json(p) for p in sorted((task_dir / "reviews").glob("*.json"))]
-    events_path = task_dir / "events.jsonl"
-    event_count = 0
-    if events_path.exists():
-        with events_path.open("r", encoding="utf-8") as f:
-            for _ in f:
-                event_count += 1
+    events = load_events(args.task_id)
     by_status = {}
     for node in nodes:
         by_status[node["status"]] = by_status.get(node["status"], 0) + 1
@@ -392,10 +528,13 @@ def task_summary(args):
         "status": task["status"],
         "priority": task.get("priority"),
         "goal": task.get("goal"),
+        "stage": derive_stage(task, nodes),
+        "progress_pct": compute_task_progress(nodes),
         "node_counts": by_status,
         "resume_cursor": task.get("resume_cursor", {}),
         "review_count": len(reviews),
-        "event_count": event_count,
+        "event_count": len(events),
+        "recent_events": recent_key_events(events, 5),
         "nodes": [
             {
                 "node_id": n["node_id"],
@@ -409,6 +548,140 @@ def task_summary(args):
         ],
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+
+def task_brief(args):
+    task, _ = load_task(args.task_id)
+    task_dir = TASKS_DIR / args.task_id
+    nodes = [load_json(p) for p in sorted((task_dir / "nodes").glob("*.json"))]
+    events = load_events(args.task_id)
+    counts = {}
+    for node in nodes:
+        counts[node["status"]] = counts.get(node["status"], 0) + 1
+    active = [n for n in nodes if n.get("status") in {"running", "review_pending", "blocked", "assigned"}]
+    recent = recent_key_events(events, 3)
+    print("# {} | {} | {}%".format(task["task_id"], task.get("status"), compute_task_progress(nodes)))
+    print("- 标题: {}".format(task.get("title")))
+    print("- 阶段: {}".format(derive_stage(task, nodes)))
+    print("- 节点计数: {}".format(json.dumps(counts, ensure_ascii=False)))
+    if active:
+        print("- 当前活跃:")
+        for node in active:
+            print("  - {} | {} | role={} | session={}".format(
+                node.get("node_id"),
+                node.get("status"),
+                node.get("assigned_role"),
+                node.get("assigned_session") or "-",
+            ))
+    if recent:
+        print("- 最近事件:")
+        for event in recent:
+            print("  - {} | {} | {}".format(event.get("timestamp"), event.get("type"), event.get("node_id") or "task"))
+
+
+def task_events(args):
+    events = load_events(args.task_id)
+    if args.key_only:
+        events = [e for e in events if e.get("type") in KEY_EVENT_TYPES]
+    if args.tail:
+        events = events[-args.tail:]
+    print(json.dumps(events, ensure_ascii=False, indent=2))
+
+
+def task_agent_status(args):
+    task_dir = TASKS_DIR / args.task_id
+    nodes = [load_json(p) for p in sorted((task_dir / "nodes").glob("*.json"))]
+    rows = build_agent_rows(nodes, args)
+    print(json.dumps(rows, ensure_ascii=False, indent=2))
+
+
+def task_report(args):
+    task, _ = load_task(args.task_id)
+    task_dir = TASKS_DIR / args.task_id
+    nodes = [load_json(p) for p in sorted((task_dir / "nodes").glob("*.json"))]
+    reviews = [load_json(p) for p in sorted((task_dir / "reviews").glob("*.json"))]
+    events = load_events(args.task_id)
+    progress = compute_task_progress(nodes)
+    stage = derive_stage(task, nodes)
+    print("# {} 状态汇报".format(task["task_id"]))
+    print()
+    print("## 总览")
+    print("- 标题: {}".format(task.get("title")))
+    print("- 目标: {}".format(task.get("goal")))
+    print("- 状态: {}".format(task.get("status")))
+    print("- 阶段: {}".format(stage))
+    print("- 优先级: {}".format(task.get("priority")))
+    print("- 完成度: {}%".format(progress))
+    print("- review 数: {}".format(len(reviews)))
+    print("- event 数: {}".format(len(events)))
+    print("- 更新时间: {}".format(task.get("updated_at")))
+    print()
+    print("## 节点进展")
+    for node in nodes:
+        print("- {} | {} | role={} | session={}".format(
+            node.get("node_id"),
+            node.get("status"),
+            node.get("assigned_role"),
+            node.get("assigned_session") or "-",
+        ))
+        print("  - 标题: {}".format(node.get("title")))
+        print("  - depends_on: {}".format(", ".join(node.get("depends_on", [])) or "-"))
+        print("  - runtime: {} / {}".format(node.get("runtime") or "-", node.get("session_mode") or "-"))
+        print("  - result: {}".format(node.get("result_summary") or "-"))
+        print("  - output_refs: {}".format(", ".join(node.get("output_refs", [])) or "-"))
+        print("  - input_refs: {}".format(", ".join(node.get("input_refs", [])) or "-"))
+        print("  - review_required: {}".format(node.get("review_required")))
+        print("  - updated_at: {}".format(node.get("updated_at")))
+        if node.get("last_error"):
+            print("  - last_error: {}".format(node.get("last_error")))
+    if args.with_agents:
+        print()
+        print("## Agent / Session 健康")
+        rows = build_agent_rows(nodes, args)
+        for row in rows:
+            print("- session={} | node={} | role={} | health={}".format(
+                row.get("session_key") or "-",
+                row.get("node_id"),
+                row.get("role"),
+                row.get("health"),
+            ))
+            print("  - node_status: {}".format(row.get("node_status")))
+            print("  - runtime: {} / {}".format(row.get("runtime") or "-", row.get("session_mode") or "-"))
+            print("  - ledger_age_min: {}".format(row.get("ledger_age_min")))
+            print("  - runtime_status: {}".format(row.get("runtime_status") or "-"))
+            print("  - runtime_age_min: {}".format(row.get("runtime_age_min")))
+            print("  - result: {}".format(row.get("result_summary") or "-"))
+    print()
+    print("## 最近关键事件")
+    for event in recent_key_events(events, args.tail):
+        print("- {} | {} | {}".format(
+            event.get("timestamp"),
+            event.get("type"),
+            event.get("node_id") or "task",
+        ))
+    print()
+    print("## Resume Cursor")
+    print(json.dumps(task.get("resume_cursor", {}), ensure_ascii=False, indent=2))
+    print()
+    print("## CEO 建议")
+    blocked = [n for n in nodes if n.get("status") == "blocked"]
+    review_pending = [n for n in nodes if n.get("status") == "review_pending"]
+    running = [n for n in nodes if n.get("status") == "running"]
+    if args.with_agents:
+        stale_rows = [r for r in build_agent_rows(nodes, args) if r.get("health") == "stale"]
+        if stale_rows:
+            print("- 存在 stale session，优先干预：{}".format(", ".join((r.get("session_key") or r.get("node_id")) for r in stale_rows)))
+            return
+    if blocked:
+        print("- 存在 blocked 节点，优先处理阻塞：{}".format(", ".join(n.get("node_id") for n in blocked)))
+    elif review_pending:
+        print("- 当前优先处理 review gate：{}".format(", ".join(n.get("node_id") for n in review_pending)))
+    elif running:
+        print("- 当前保持执行推进，重点关注运行中节点的结果回写：{}".format(", ".join(n.get("node_id") for n in running)))
+    elif task.get("status") == "delivered":
+        print("- 任务已 delivered，可转入归档或下一轮 runtime 强化。")
+    else:
+        print("- 可继续从 resume_cursor.next_nodes 推进下一批节点。")
 
 
 def show_task(args):
@@ -518,6 +791,30 @@ def main():
     p = sub.add_parser("task-summary")
     p.add_argument("task_id")
     p.set_defaults(func=task_summary)
+
+    p = sub.add_parser("task-brief")
+    p.add_argument("task_id")
+    p.set_defaults(func=task_brief)
+
+    p = sub.add_parser("task-events")
+    p.add_argument("task_id")
+    p.add_argument("--tail", type=int, default=10)
+    p.add_argument("--key-only", action="store_true")
+    p.set_defaults(func=task_events)
+
+    p = sub.add_parser("task-agent-status")
+    p.add_argument("task_id")
+    p.add_argument("--sessions-file")
+    p.add_argument("--stale-after-minutes", type=float, default=30)
+    p.set_defaults(func=task_agent_status)
+
+    p = sub.add_parser("task-report")
+    p.add_argument("task_id")
+    p.add_argument("--tail", type=int, default=5)
+    p.add_argument("--with-agents", action="store_true")
+    p.add_argument("--sessions-file")
+    p.add_argument("--stale-after-minutes", type=float, default=30)
+    p.set_defaults(func=task_report)
 
     p = sub.add_parser("show-task")
     p.add_argument("task_id")
